@@ -46,6 +46,7 @@ namespace Irony.Samples.Informix4GL
             KeyTerm Lpar = ToTerm("(");
             KeyTerm Rpar = ToTerm(")");
             KeyTerm tgoto = ToTerm("goto");
+            KeyTerm not = ToTerm("not");
             //KeyTerm yld = ToTerm("yield");
 
             // Handle comments
@@ -139,6 +140,30 @@ namespace Irony.Samples.Informix4GL
             var oneOrMoreActualParameters = new NonTerminal("oneOrMoreActualParameters");
             var oneOrMoreVariables = new NonTerminal("oneOrMoreVariables");
             var gotoStatement = new NonTerminal("gotoStatement");
+
+            var condition = new NonTerminal("condition");
+            var oneOrMoreLogicalTerms = new NonTerminal("oneOrMoreLogicalTerms");
+            var logicalTerm = new NonTerminal("logicalTerm");
+            var oneOrMoreLogicalFactors = new NonTerminal("oneOrMoreLogicalFactors");
+            var logicalFactor = new NonTerminal("logicalFactor");
+            var sqlExpression = new NonTerminal("sqlExpression");
+            var expressionSet = new NonTerminal("expressionSet");
+            var quantifiedFactor = new NonTerminal("quantifiedFactor");
+            var relationalOperator = new NonTerminal("relationalOperator");
+            var subquery = new NonTerminal("subquery");
+            var sqlSelectStatement = new NonTerminal("sqlSelectStatement");
+            var sqlTerm = new NonTerminal("sqlTerm");
+            var sqlAlias = new NonTerminal("sqlAlias");
+            var sqlFactor = new NonTerminal("sqlFactor");
+            var sqlMultiply = new NonTerminal("sqlMultiply");
+            var sqlFactor2 = new NonTerminal("sqlFactor2");
+            var sqlLiteral = new NonTerminal("sqlLiteral");
+            var sqlVariable = new NonTerminal("sqlVariable");
+            var groupFunction = new NonTerminal("groupFunction");
+            var sqlFunction = new NonTerminal("sqlFunction");
+            var sqlExpressionList = new NonTerminal("sqlExpressionList");
+            var oneOrMoreSqlExpressions = new NonTerminal("oneOrMoreSqlExpressions");
+            var unsignedConstant = new NonTerminal("unsignedConstant");
 
             /************************************************************************************************************/
             // initialize the root
@@ -262,7 +287,41 @@ namespace Irony.Samples.Informix4GL
             actualParameter.Rule = star | expression;
             gotoStatement.Rule = "goto" + colon.Q() + label;
 
-            
+            oneOrMoreLogicalTerms.Rule = MakePlusRule(oneOrMoreLogicalTerms, ToTerm("or"), logicalTerm);
+            condition.Rule = ToTerm("true") | "false" | oneOrMoreLogicalTerms;
+            logicalTerm.Rule = MakePlusRule(oneOrMoreLogicalFactors, ToTerm("and"), logicalFactor);
+            logicalFactor.Rule = ((sqlExpression + not.Q() + "in") + "=>" + sqlExpression + not.Q() + "in" + expressionSet) |
+                                 ((sqlExpression + not.Q() + "like") + "=>" + sqlExpression + not.Q() + "like" + sqlExpression + StringLiteral) |
+                                 ((sqlExpression + not.Q() + "between") + "=>" + sqlExpression + not.Q() + "between" + sqlExpression + "and" + sqlExpression) |
+                                 ((sqlExpression + "is" + not.Q() + "null") + "=>" + sqlExpression + "is" + not.Q() + "null") |
+                                 (quantifiedFactor + "=>" + quantifiedFactor) |
+                                 (Lpar + condition + Rpar) |
+                                 (sqlExpression + relationalOperator + sqlExpression);
+            quantifiedFactor.Rule = ((sqlExpression + relationalOperator + (ToTerm("all") | "any").Q() + subquery) + "=>" +
+                                        sqlExpression + relationalOperator + (ToTerm("all") | "any").Q() + subquery) |
+                                    ((not.Q() + "exists" + subquery) + "=>" + not.Q() + "exists" + subquery) |
+                                    subquery;
+            expressionSet.Rule = (sqlExpression + "=>" + sqlExpression) | subquery;
+            subquery.Rule = Lpar + sqlSelectStatement + Rpar;
+            sqlExpression.Rule = MakePlusRule(sqlExpression, (plus | minus), sqlTerm);
+            sqlAlias.Rule = ToTerm("as").Q() + Identifier;
+            sqlTerm.Rule = MakePlusRule(sqlTerm, (sqlMultiply | "/"), sqlFactor);
+            sqlMultiply.Rule = star;
+            sqlFactor.Rule = MakePlusRule(sqlFactor, ToTerm("||"), sqlFactor2);
+            oneOrMoreSqlExpressions.Rule = MakePlusRule(oneOrMoreSqlExpressions, comma, sqlExpression);
+            sqlFactor2.Rule = ((sqlVariable + ("units" + unitType).Q()) + "=>" + sqlVariable + ("units" + unitType).Q()) |
+                              ((sqlLiteral + ("units" + unitType).Q()) + "=>" + sqlLiteral + ("units" + unitType).Q()) |
+                              ((groupFunction + Lpar + (star | "all" | "distinct").Q() + oneOrMoreSqlExpressions.Q() + Rpar) + "=>" +
+                               (groupFunction + Lpar + (star | "all" | "distinct").Q() + oneOrMoreSqlExpressions.Q() + Rpar)) |
+                              ((sqlFunction + Lpar + oneOrMoreSqlExpressions + Rpar) + "=>" +
+                               (sqlFunction + Lpar + oneOrMoreSqlExpressions + Rpar)) |
+                              (((plus | minus) + sqlExpression) + "=>" + ((plus | minus) + sqlExpression)) |
+                              ((Lpar + sqlExpression + Rpar) + "=>" + (Lpar + sqlExpression + Rpar)) |
+                              sqlExpressionList;
+
+            sqlExpressionList.Rule = Lpar + sqlExpression + comma + oneOrMoreSqlExpressions + Rpar;
+            unsignedConstant.Rule = Number | StringLiteral | constantIdentifier | "null";
+
 
             // dummy for test
             databaseDeclaration.Rule = "database";
