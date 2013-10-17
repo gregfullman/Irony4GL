@@ -1,5 +1,3 @@
-# This is the working test example for Informix 4gl parsing
-#database
 #global
 define x bigint   # required
 
@@ -22,13 +20,14 @@ function functionId (param1 para2)
     define arr array[3] of int
     
     #simple expression - assignment
-    let variable = expression
+    let variable = variable + 1
     
     # simple expression - call
-    call functionId returning variable
+    call programname returning variable
     
     # structured expression
-    structuredStatement
+    if something then 
+    end if
     
     
 end function

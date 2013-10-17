@@ -26,9 +26,15 @@ namespace Irony.Samples.Informix4GL
             // Symbols
             KeyTerm plus = ToTerm("+", "plus");
             KeyTerm minus = ToTerm("-", "minus");
+            KeyTerm div = ToTerm("/", "div");
             KeyTerm colon = ToTerm(":", "colon");
             KeyTerm semi = ToTerm(";", "semi");
             KeyTerm equal = ToTerm("=", "equal");
+            KeyTerm nequal = ToTerm("!=", "nequal");
+            KeyTerm le = ToTerm("<=", "le");
+            KeyTerm lt = ToTerm("<", "lt");
+            KeyTerm ge = ToTerm(">=", "ge");
+            KeyTerm gt = ToTerm(">", "gt");
             NonTerminal semi_opt = new NonTerminal("semi?");
             semi_opt.Rule = Empty | semi;
             KeyTerm dot = ToTerm(".", "dot");
@@ -164,6 +170,47 @@ namespace Irony.Samples.Informix4GL
             var sqlExpressionList = new NonTerminal("sqlExpressionList");
             var oneOrMoreSqlExpressions = new NonTerminal("oneOrMoreSqlExpressions");
             var unsignedConstant = new NonTerminal("unsignedConstant");
+
+            var numberFunction = new NonTerminal("numberFunction");
+            var charFunction = new NonTerminal("charFunction");
+            var dateFunction = new NonTerminal("dateFunction");
+            var otherFunction = new NonTerminal("otherFunction");
+            var columnsTableId = new NonTerminal("columnsTableId");
+            var ifCondition = new NonTerminal("ifCondition");
+            var oneOrMoreIfCondition2s = new NonTerminal("oneOrMoreIfCondition2s");
+            var ifLogicalTerm = new NonTerminal("ifLogicalTerm");
+            var oneOrMoreIfLogicalTerms = new NonTerminal("oneOrMoreIfLogicalTerms");
+            var ifLogicalFactor = new NonTerminal("ifLogicalFactor");
+            var oneOrMoreIfLogicalFactors = new NonTerminal("oneOrMoreIfLogicalFactors");
+
+            var simpleExpression = new NonTerminal("simpleExpression");
+            var term = new NonTerminal("term");
+            var oneOrMoreTerms = new NonTerminal("oneOrMoreTerms");
+            var addingOperator = new NonTerminal("addingOperator");
+            var oneOrMoreFactors = new NonTerminal("oneOrMoreFactors");
+            var multiplyingOperator = new NonTerminal("multiplyingOperator");
+            var factor = new NonTerminal("factor");
+            var functionDesignator = new NonTerminal("functionDesignator");
+            var constant = new NonTerminal("constant");
+
+            var entireVariable = new NonTerminal("entireVariable");
+            var componentVariable = new NonTerminal("componentVariable");
+            var variableIdentifier = new NonTerminal("variableIdentifier");
+            var indexingVariable = new NonTerminal("indexingVariable");
+            var recordVariable = new NonTerminal("recordVariable");
+
+            var fieldIdentifier = new NonTerminal("fieldIdentifier");
+            var conditionalStatement = new NonTerminal("conditionalStatement");
+            var repetetiveStatement = new NonTerminal("repetetiveStatement");
+            var ifStatement = new NonTerminal("ifStatement");
+            var caseStatement = new NonTerminal("caseStatement");
+            var whileStatement = new NonTerminal("whileStatement");
+            var forEachStatement = new NonTerminal("forEachStatement");
+            var forStatement = new NonTerminal("forStatement");
+            var controlVariable = new NonTerminal("controlVariable");
+            var forList = new NonTerminal("forList");
+            var initialValue = new NonTerminal("initialValue");
+            var finalValue = new NonTerminal("finalValue");
 
             /************************************************************************************************************/
             // initialize the root
@@ -322,14 +369,69 @@ namespace Irony.Samples.Informix4GL
             sqlExpressionList.Rule = Lpar + sqlExpression + comma + oneOrMoreSqlExpressions + Rpar;
             unsignedConstant.Rule = Number | StringLiteral | constantIdentifier | "null";
 
+            sqlLiteral.Rule = unsignedConstant | StringLiteral | "null" | "false" | "true";
+            sqlVariable.Rule = columnsTableId + "=>" + columnsTableId;
+            sqlFunction.Rule = numberFunction | charFunction | dateFunction | otherFunction;
+            dateFunction.Rule = ToTerm("year") | "date" | "day" | "month";
+            numberFunction.Rule = "mod";
+            charFunction.Rule = "length";
+            groupFunction.Rule = ToTerm("avg") | "count" | "max" | "min" | "sum";
+            otherFunction.Rule = ToTerm("decode") | "nvl" | constantIdentifier;
+            relationalOperator.Rule = equal | nequal | le | lt | ge | gt | (not.Q() + "matches") | "like";
+
+            oneOrMoreIfCondition2s.Rule = MakePlusRule(oneOrMoreIfCondition2s, relationalOperator, oneOrMoreIfLogicalTerms);
+            ifCondition.Rule = ToTerm("true") | "false" | oneOrMoreIfCondition2s;
+
+            oneOrMoreIfLogicalTerms.Rule = MakePlusRule(oneOrMoreIfLogicalTerms, ToTerm("or"), ifLogicalTerm);
+            ifLogicalTerm.Rule = MakePlusRule(ifLogicalTerm, ToTerm("and"), ifLogicalFactor);
+            expression.Rule = simpleExpression + ("clipped" | ("using" + StringLiteral)).Q();    // TODO: this may be wrong, check the grammar doc
+            ifLogicalFactor.Rule = ((simpleExpression + "is" + not.Q() + "null") + "=>" + simpleExpression + "is" + not.Q() + "null") |
+                                   ((not + ifCondition) + "=>" + not + ifCondition) |
+                                   (Lpar + ifCondition + Rpar) |
+                                   (simpleExpression + "=>" + simpleExpression);
+            oneOrMoreTerms.Rule = MakePlusRule(oneOrMoreTerms, addingOperator, term);
+            simpleExpression.Rule = sign.Q() + oneOrMoreTerms;
+            addingOperator.Rule = plus | minus;
+
+            term.Rule = MakePlusRule(term, multiplyingOperator, factor);
+            multiplyingOperator.Rule = star | div | "mod";
+            factor.Rule = ((ToTerm("group").Q() + functionDesignator) | variable | constant | (Lpar + expression + Rpar) | (not + factor)) +
+                          ("units" + unitType).Q();
+            
+            functionDesignator.Rule = functionIdentifier + (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q();
+            functionIdentifier.Rule = ToTerm("day") | "year" | "month" | "today" | "weekday" | "mdy" | "column" |
+                                      "sum" | "count" | "avg" | "min" | "max" | "extend" | "date" | "time" | "infield" |
+                                      "prepare" | constantIdentifier;
+
+            constant.Rule = numericConstant | constantIdentifier | (sign + Identifier) | Identifier | StringLiteral;
+
+            variable.Rule = entireVariable | componentVariable;
+            entireVariable.Rule = variableIdentifier;
+            variableIdentifier.Rule = constantIdentifier;
+            indexingVariable.Rule = Lbr + oneOrMoreExpressions + Rbr;
+            componentVariable.Rule = (recordVariable + indexingVariable.Q()) + 
+                                     ((dot + star) | (dot + componentVariable + ((ToTerm("through") | "thru") + componentVariable).Q())).Q();
+            recordVariable.Rule = constantIdentifier;
+
+            fieldIdentifier.Rule = constantIdentifier;
+            structuredStatement.Rule = conditionalStatement | repetetiveStatement;
+            conditionalStatement.Rule = ifStatement | caseStatement;
+            ifStatement.Rule = "if" + ifCondition + "then" + codeBlock.Q() + ("else" + codeBlock.Q()).Q() + "end" + "if";
+            repetetiveStatement.Rule = whileStatement | forEachStatement | forStatement;
+            whileStatement.Rule = "while" + ifCondition + codeBlock.Q() + "end" + "while";
+            forStatement.Rule = "for" + controlVariable + equal + forList + ("step" + numericConstant).Q() +
+                                codeBlock.Q() + "end" + "for";
+            forList.Rule = initialValue + "to" + finalValue;
+            controlVariable.Rule = Identifier;
+            initialValue.Rule = expression;
+            finalValue.Rule = expression;
+
 
             // dummy for test
             databaseDeclaration.Rule = "database";
             reportDefinition.Rule = "reportDef";
             variableOrConstantList.Rule = "varConstList";
-            functionIdentifier.Rule = "functionId";
             tableIdentifier.Rule = "tableId";
-            structuredStatement.Rule = "structuredStatement";
             sqlStatements.Rule = "sqlStatements";
             otherFGLStatement.Rule = "otherFGLStatement";
             menuInsideStatement.Rule = "menuInsideStatement";
@@ -337,8 +439,8 @@ namespace Irony.Samples.Informix4GL
             displayInsideStatement.Rule = "displayInsideStatement";
             inputInsideStatement.Rule = "inputInsideStatement";
 
-            variable.Rule = "variable";
-            expression.Rule = "expression";
+            caseStatement.Rule = "caseStatement";
+            forEachStatement.Rule = "foreach";
         }
     }
 }
