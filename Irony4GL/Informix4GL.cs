@@ -212,6 +212,73 @@ namespace Irony.Samples.Informix4GL
             var initialValue = new NonTerminal("initialValue");
             var finalValue = new NonTerminal("finalValue");
 
+            var variableList = new NonTerminal("variableList");
+            var whenExpression = new NonTerminal("whenExpression");
+            var whenIf = new NonTerminal("whenIf");
+            var zeroOrMoreWhenExpressions = new NonTerminal("zeroOrMoreWhenExpressions");
+            var zeroOrMoreWhenIfs = new NonTerminal("zeroOrMoreWhenIfs");
+
+            var clippedUsing = new NonTerminal("clippedUsing");
+            var zeroOrMoreClippedUsings = new NonTerminal("zeroOrMoreClippedUsings");
+
+            var otherProgramFlowStatement = new NonTerminal("otherProgramFlowStatement");
+            var otherStorageStatement = new NonTerminal("otherStorageStatement");
+            var reportStatement = new NonTerminal("reportStatement");
+            var screenStatement = new NonTerminal("screenStatement");
+            var exitStatements = new NonTerminal("exitStatements");
+            var continueStatements = new NonTerminal("continueStatements");
+            var exitTypes = new NonTerminal("exitTypes");
+
+            var printExpressionItem = new NonTerminal("printExpressionItem");
+            var printExpressionList = new NonTerminal("printExpressionList");
+            var reportDimensionSpecifier = new NonTerminal("reportDimensionSpecifier");
+            var zeroOrMoreReportDimensionSpecifiers = new NonTerminal("zeroOrMoreReportDimensionSpecifiers");
+
+            var thruNotation = new NonTerminal("thruNotation");
+            var fieldName = new NonTerminal("fieldName");
+            var fieldList = new NonTerminal("fieldList");
+            var keyList = new NonTerminal("keyList");
+            var constructEvents = new NonTerminal("constructEvents");
+            var specialAttribute = new NonTerminal("specialAttribute");
+            var oneOrMoreSpecialAttributes = new NonTerminal("attribute");
+            var attribute = new NonTerminal("attribute");
+            var attributeList = new NonTerminal("attributeList");
+            var constructGroupStatement = new NonTerminal("constructGroupStatement");
+            var oneOrMoreCodeBlocks = new NonTerminal("oneOrMoreCodeBlocks");
+            var constructStatement = new NonTerminal("constructStatement");
+            var oneOrMoreConstructGroupStatements = new NonTerminal("oneOrMoreConstructGroupStatements");
+            var columnsList = new NonTerminal("columnsList");
+
+            var displayArrayStatement = new NonTerminal("displayArrayStatement");
+            var displayEvents = new NonTerminal("displayEvents");
+            var zeroOrMoreDisplayEvents = new NonTerminal("zeroOrMoreDisplayEvents");
+            var displayStatement = new NonTerminal("displayStatement");
+            var errorStatement = new NonTerminal("errorStatement");
+            var messageStatement = new NonTerminal("messageStatement");
+            var promptStatement = new NonTerminal("promptStatement");
+            var zeroOrMoreKeyListCodeBlocks = new NonTerminal("zeroOrMoreKeyListCodeBlocks");
+            var keyListCodeBlock = new NonTerminal("keyListCodeBlock");
+
+            var inputEvents = new NonTerminal("inputEvents");
+            var inputGroupStatement = new NonTerminal("inputGroupStatement");
+            var inputStatement = new NonTerminal("inputStatement");
+            var inputArrayStatement = new NonTerminal("inputArrayStatement");
+            var zeroOrMoreCodeBlocks = new NonTerminal("zeroOrMoreCodeBlocks");
+            var oneOrMoreInputGroupStatements = new NonTerminal("oneOrMoreInputGroupStatements");
+
+            var menuEvents = new NonTerminal("menuEvents");
+            var menuGroupStatement = new NonTerminal("menuGroupStatement");
+            var menuStatement = new NonTerminal("menuStatement");
+            var zeroOrMoreMenuGroupStatements = new NonTerminal("zeroOrMoreMenuGroupStatements");
+            var additionalExpression = new NonTerminal("additionalExpression");
+            var zeroOrMoreAdditionalExpressions = new NonTerminal("zeroOrMoreAdditionalExpressions");
+
+            var reservedLinePosition = new NonTerminal("reservedLinePosition");
+            var specialWindowAttribute = new NonTerminal("specialWindowAttribute");
+            var oneOrMoreSpecialWindowAttributes = new NonTerminal("oneOrMoreSpecialWindowAttributes");
+            var windowAttribute = new NonTerminal("windowAttribute");
+            var windowAttributeList = new NonTerminal("windowAttributeList");
+
             /************************************************************************************************************/
             // initialize the root
             Root = compilation_unit;
@@ -337,18 +404,17 @@ namespace Irony.Samples.Informix4GL
             oneOrMoreLogicalTerms.Rule = MakePlusRule(oneOrMoreLogicalTerms, ToTerm("or"), logicalTerm);
             condition.Rule = ToTerm("true") | "false" | oneOrMoreLogicalTerms;
             logicalTerm.Rule = MakePlusRule(oneOrMoreLogicalFactors, ToTerm("and"), logicalFactor);
-            logicalFactor.Rule = ((sqlExpression + not.Q() + "in") + "=>" + sqlExpression + not.Q() + "in" + expressionSet) |
-                                 ((sqlExpression + not.Q() + "like") + "=>" + sqlExpression + not.Q() + "like" + sqlExpression + StringLiteral) |
-                                 ((sqlExpression + not.Q() + "between") + "=>" + sqlExpression + not.Q() + "between" + sqlExpression + "and" + sqlExpression) |
-                                 ((sqlExpression + "is" + not.Q() + "null") + "=>" + sqlExpression + "is" + not.Q() + "null") |
-                                 (quantifiedFactor + "=>" + quantifiedFactor) |
+            logicalFactor.Rule = (sqlExpression + not.Q() + "in" + expressionSet) |
+                                 (sqlExpression + not.Q() + "like" + sqlExpression + StringLiteral) |
+                                 (sqlExpression + not.Q() + "between" + sqlExpression + "and" + sqlExpression) |
+                                 (sqlExpression + "is" + not.Q() + "null") |
+                                 (quantifiedFactor) |
                                  (Lpar + condition + Rpar) |
                                  (sqlExpression + relationalOperator + sqlExpression);
-            quantifiedFactor.Rule = ((sqlExpression + relationalOperator + (ToTerm("all") | "any").Q() + subquery) + "=>" +
-                                        sqlExpression + relationalOperator + (ToTerm("all") | "any").Q() + subquery) |
-                                    ((not.Q() + "exists" + subquery) + "=>" + not.Q() + "exists" + subquery) |
+            quantifiedFactor.Rule = (sqlExpression + relationalOperator + (ToTerm("all") | "any").Q() + subquery) |
+                                    (not.Q() + "exists" + subquery) |
                                     subquery;
-            expressionSet.Rule = (sqlExpression + "=>" + sqlExpression) | subquery;
+            expressionSet.Rule = sqlExpression | subquery;
             subquery.Rule = Lpar + sqlSelectStatement + Rpar;
             sqlExpression.Rule = MakePlusRule(sqlExpression, (plus | minus), sqlTerm);
             sqlAlias.Rule = ToTerm("as").Q() + Identifier;
@@ -356,21 +422,19 @@ namespace Irony.Samples.Informix4GL
             sqlMultiply.Rule = star;
             sqlFactor.Rule = MakePlusRule(sqlFactor, ToTerm("||"), sqlFactor2);
             oneOrMoreSqlExpressions.Rule = MakePlusRule(oneOrMoreSqlExpressions, comma, sqlExpression);
-            sqlFactor2.Rule = ((sqlVariable + ("units" + unitType).Q()) + "=>" + sqlVariable + ("units" + unitType).Q()) |
-                              ((sqlLiteral + ("units" + unitType).Q()) + "=>" + sqlLiteral + ("units" + unitType).Q()) |
-                              ((groupFunction + Lpar + (star | "all" | "distinct").Q() + oneOrMoreSqlExpressions.Q() + Rpar) + "=>" +
-                               (groupFunction + Lpar + (star | "all" | "distinct").Q() + oneOrMoreSqlExpressions.Q() + Rpar)) |
-                              ((sqlFunction + Lpar + oneOrMoreSqlExpressions + Rpar) + "=>" +
-                               (sqlFunction + Lpar + oneOrMoreSqlExpressions + Rpar)) |
-                              (((plus | minus) + sqlExpression) + "=>" + ((plus | minus) + sqlExpression)) |
-                              ((Lpar + sqlExpression + Rpar) + "=>" + (Lpar + sqlExpression + Rpar)) |
+            sqlFactor2.Rule = (sqlVariable + ("units" + unitType).Q()) |
+                              (sqlLiteral + ("units" + unitType).Q()) |
+                              (groupFunction + Lpar + (star | "all" | "distinct").Q() + oneOrMoreSqlExpressions.Q() + Rpar) |
+                              ((sqlFunction + Lpar + oneOrMoreSqlExpressions + Rpar)) |
+                              (((plus | minus) + sqlExpression)) |
+                              ((Lpar + sqlExpression + Rpar)) |
                               sqlExpressionList;
 
             sqlExpressionList.Rule = Lpar + sqlExpression + comma + oneOrMoreSqlExpressions + Rpar;
             unsignedConstant.Rule = Number | StringLiteral | constantIdentifier | "null";
 
             sqlLiteral.Rule = unsignedConstant | StringLiteral | "null" | "false" | "true";
-            sqlVariable.Rule = columnsTableId + "=>" + columnsTableId;
+            sqlVariable.Rule = columnsTableId;
             sqlFunction.Rule = numberFunction | charFunction | dateFunction | otherFunction;
             dateFunction.Rule = ToTerm("year") | "date" | "day" | "month";
             numberFunction.Rule = "mod";
@@ -384,11 +448,13 @@ namespace Irony.Samples.Informix4GL
 
             oneOrMoreIfLogicalTerms.Rule = MakePlusRule(oneOrMoreIfLogicalTerms, ToTerm("or"), ifLogicalTerm);
             ifLogicalTerm.Rule = MakePlusRule(ifLogicalTerm, ToTerm("and"), ifLogicalFactor);
-            expression.Rule = simpleExpression + ("clipped" | ("using" + StringLiteral)).Q();    // TODO: this may be wrong, check the grammar doc
-            ifLogicalFactor.Rule = ((simpleExpression + "is" + not.Q() + "null") + "=>" + simpleExpression + "is" + not.Q() + "null") |
-                                   ((not + ifCondition) + "=>" + not + ifCondition) |
+            clippedUsing.Rule = "clipped" | ("using" + StringLiteral);
+            zeroOrMoreClippedUsings.Rule = MakeStarRule(zeroOrMoreClippedUsings, null, clippedUsing);
+            expression.Rule = simpleExpression + zeroOrMoreClippedUsings;
+            ifLogicalFactor.Rule = (simpleExpression + "is" + not.Q() + "null") |
+                                   (not + ifCondition) |
                                    (Lpar + ifCondition + Rpar) |
-                                   (simpleExpression + "=>" + simpleExpression);
+                                   simpleExpression;
             oneOrMoreTerms.Rule = MakePlusRule(oneOrMoreTerms, addingOperator, term);
             simpleExpression.Rule = sign.Q() + oneOrMoreTerms;
             addingOperator.Rule = plus | minus;
@@ -426,6 +492,147 @@ namespace Irony.Samples.Informix4GL
             initialValue.Rule = expression;
             finalValue.Rule = expression;
 
+            forEachStatement.Rule = "foreach" + Identifier + ("using" + variableList).Q() + ("into" + variableList).Q() +
+                                    (ToTerm("with") + "reoptimization").Q() + codeBlock.Q() + "end" + "foreach";
+            variableList.Rule = oneOrMoreVariables;
+
+            whenExpression.Rule = "when" + expression + codeBlock.Q();
+            whenIf.Rule = "when" + ifCondition + codeBlock;
+            zeroOrMoreWhenExpressions.Rule = MakeStarRule(zeroOrMoreWhenExpressions, null, whenExpression);
+            zeroOrMoreWhenIfs.Rule = MakeStarRule(zeroOrMoreWhenIfs, null, whenIf);
+            caseStatement.Rule = ("case" + expression + zeroOrMoreWhenExpressions +
+                                    ("otherwise" + codeBlock.Q()).Q() + "end" + "case") |
+                                 ("case" + zeroOrMoreWhenIfs + ("otherwise" + codeBlock).Q() + "end" + "case");
+
+            otherFGLStatement.Rule = otherProgramFlowStatement |
+                                     otherStorageStatement |
+                                     reportStatement |
+                                     screenStatement;
+            otherProgramFlowStatement.Rule = runStatement |
+                                             gotoStatement |
+                                             ("sleep" + expression) |
+                                             exitStatements |
+                                             continueStatements |
+                                             returnStatement;
+            exitTypes.Rule = ToTerm("foreach") | "for" | "case" | "construct" | "display" | "input" | "menu" | "report" | "while";
+            exitStatements.Rule = ("exit" + exitTypes) | (ToTerm("exit") + "program" + ((Lpar + expression + Rpar) | expression).Q());
+            continueStatements.Rule = "continue" + exitTypes;
+            otherStorageStatement.Rule = ("allocate" + "array" + Identifier + arrayIndexer) |
+                                         ("locate" + variableList + "in" + ("memory" | ("file" + (variable | StringLiteral).Q()))) |
+                                         ("deallocate" + "array" + Identifier) |
+                                         ("resize" + "array" + Identifier + arrayIndexer) |
+                                         ("free" + oneOrMoreVariables) |
+                                         ("initialize" + oneOrMoreVariables + ((ToTerm("to") + "null") | ("like" + oneOrMoreExpressions))) |
+                                         ("validate" + oneOrMoreVariables + "like" + oneOrMoreExpressions);
+            
+            printExpressionItem.Rule = ("column" + expression) | "pageno" | "lineno" |
+                                       ("byte" + variable) | ("text" + variable) |
+                                       (expression + (ToTerm("space") | "spaces").Q() + ("wordwrap" + ("right" + "margin" + numericConstant).Q()).Q());
+            printExpressionList.Rule = MakePlusRule(printExpressionList, comma, printExpressionItem);
+            
+            reportStatement.Rule = ("start" + "report" + constantIdentifier +
+                                        ("to" + (expression | ("pipe" + expression) | "printer")).Q() +
+                                        ("with" + zeroOrMoreReportDimensionSpecifiers).Q()) |
+                                   ("terminate" + "report" + constantIdentifier) |
+                                   ("finish" + "report" + constantIdentifier) |
+                                   ("pause" + StringLiteral.Q()) |
+                                   ("need" + expression + "lines") |
+                                   ("print" + ((printExpressionList.Q() + semi.Q()) | ("file" | StringLiteral)).Q()) |
+                                   ("skip" + ((expression + (ToTerm("line") | "lines")) | (ToTerm("to") + "top" + "of" + "page"))) |
+                                   (ToTerm("output") + "to" + "report" + constantIdentifier + Lpar + oneOrMoreExpressions.Q() + Rpar);
+            reportDimensionSpecifier.Rule = ((ToTerm("left") | "right" | "top" | "bottom") + "margin" + numericConstant) |
+                                            ("page" + "length" + numericConstant) |
+                                            ("top" + "of" + "page" + StringLiteral);
+            zeroOrMoreReportDimensionSpecifiers.Rule = MakeStarRule(zeroOrMoreReportDimensionSpecifiers, null, reportDimensionSpecifier);
+
+            thruNotation.Rule = ((ToTerm("through") | "thru") + ("same" + dot).Q() + Identifier).Q();
+            fieldName.Rule = (((Identifier + (Lbr + numericConstant + Rbr).Q()) + dot).Q() + Identifier) |
+                             ((Identifier + (Lbr + numericConstant + Rbr).Q()) + dot + (star | (Identifier + thruNotation)));
+            fieldList.Rule = oneOrMoreExpressions;
+            keyList.Rule = oneOrMoreExpressions;
+            constructEvents.Rule = ((ToTerm("before") | "after") + ("construct" | ("field" + fieldList))) |
+                                   ("on" + "key" + Lpar + keyList + Rpar);
+            constructInsideStatement.Rule = ("next" + "field" + (fieldName | "next" | "previous")) |
+                                            ((ToTerm("continue") | "exit") + "construct");
+            specialAttribute.Rule = ToTerm("reverse") | "blink" | "underline";
+            attribute.Rule = (ToTerm("black") | "blue" | "cyan" | "green" | "magenta" | "red" | "white" | "yellow" | "bold" | "dim" | "normal" | "invisible").Q() +
+                             oneOrMoreSpecialAttributes;
+            oneOrMoreSpecialAttributes.Rule = MakePlusRule(oneOrMoreSpecialAttributes, comma, specialAttribute);
+            attributeList.Rule = (ToTerm("attribute") | "attributes") + Lpar + attribute + Rpar;
+            constructGroupStatement.Rule = constructEvents + oneOrMoreCodeBlocks;
+            oneOrMoreCodeBlocks.Rule = MakePlusRule(oneOrMoreCodeBlocks, null, codeBlock);
+            constructStatement.Rule = "construct" +
+                                      (("by" + "name" + variable + "on" + columnsList) |
+                                       (variable + "on" + columnsList) |
+                                       ("from" + fieldList)) +
+                                      attributeList.Q() +
+                                      ("help" + numericConstant).Q() +
+                                      (oneOrMoreConstructGroupStatements + "end" + "construct").Q();
+
+            displayArrayStatement.Rule = "display" + "array" + expression + "to" + expression +
+                                         attributeList.Q() + zeroOrMoreDisplayEvents + (ToTerm("end") + "display").Q();
+            zeroOrMoreDisplayEvents.Rule = MakeStarRule(zeroOrMoreDisplayEvents, null, displayEvents);
+            displayInsideStatement.Rule = (ToTerm("continue") | "exit") + "display";
+            displayEvents.Rule = "on" + "key" + Lpar + keyList + Rpar + oneOrMoreCodeBlocks;
+            displayStatement.Rule = "display" +
+                                    (("by" + "name" + oneOrMoreExpressions) |
+                                     (("to" + fieldList) | ("at" + expression + comma + expression)).Q()) +
+                                    attributeList.Q();
+            errorStatement.Rule = "error" + oneOrMoreExpressions + attributeList.Q();
+            messageStatement.Rule = "message" + oneOrMoreExpressions + attributeList.Q();
+            promptStatement.Rule = "prompt" + oneOrMoreExpressions + attributeList.Q() +
+                                   "for" + ToTerm("char").Q() + variable +
+                                   ("help" + numericConstant).Q() +
+                                   attributeList.Q() +
+                                   (zeroOrMoreKeyListCodeBlocks + "end" + "prompt").Q();
+            keyListCodeBlock.Rule = "on" + "key" + Lpar + keyList + Rpar + codeBlock.Q();
+            zeroOrMoreKeyListCodeBlocks.Rule = MakeStarRule(zeroOrMoreKeyListCodeBlocks, null, keyListCodeBlock);
+
+            inputEvents.Rule = ((ToTerm("before") | "after") +
+                                (ToTerm("input") | "row" | "insert" | "delete")) |
+                               ((ToTerm("before") | "after") + "field" + fieldList) |
+                               ("on" + "key" + Lpar + keyList + Rpar);
+            inputInsideStatement.Rule = ("next" + "field" + (fieldName | "next" | "previous")) |
+                                        ((ToTerm("continue") | "exit") + "input");
+            inputGroupStatement.Rule = inputEvents + zeroOrMoreCodeBlocks;
+            zeroOrMoreCodeBlocks.Rule = MakeStarRule(zeroOrMoreCodeBlocks, null, codeBlock);
+            inputStatement.Rule = "input" +
+                                  (("by" + "name" + oneOrMoreExpressions +
+                                    (ToTerm("without") + "defaults").Q()) |
+                                   (oneOrMoreExpressions + (ToTerm("without") + "defaults").Q() + "from" + fieldList)) +
+                                  attributeList.Q() +
+                                  ("help" + numericConstant).Q() +
+                                  (oneOrMoreInputGroupStatements + "end" + "input").Q();
+            oneOrMoreInputGroupStatements.Rule = MakePlusRule(oneOrMoreInputGroupStatements, null, inputGroupStatement);
+            inputArrayStatement.Rule = "input" + "array" + expression +
+                                       (ToTerm("without") + "defaults").Q() + "from" + oneOrMoreExpressions +
+                                       ("help" + numericConstant).Q() +
+                                       attributeList.Q() +
+                                       (oneOrMoreInputGroupStatements + "end" + "input").Q();
+
+            menuEvents.Rule = (ToTerm("before") + "menu") |
+                              ("command" +
+                                (("key" + Lpar + keyList + Rpar).Q() +
+                                 expression + expression.Q() + ("help" + numericConstant).Q()));
+            additionalExpression.Rule = comma + expression;
+            zeroOrMoreAdditionalExpressions.Rule = MakeStarRule(zeroOrMoreAdditionalExpressions, null, additionalExpression);
+            menuInsideStatement.Rule = ((ToTerm("next") | "show" | "hide") + "option" + (expression | "all") + zeroOrMoreAdditionalExpressions) |
+                                       ((ToTerm("continue") | "exit") + "menu");
+            menuGroupStatement.Rule = menuEvents + codeBlock.Q();
+            zeroOrMoreMenuGroupStatements.Rule = MakeStarRule(zeroOrMoreMenuGroupStatements, null, menuGroupStatement);
+            menuStatement.Rule = "menu" + expression + zeroOrMoreMenuGroupStatements + "end" + "menu";
+            reservedLinePosition.Rule = ("first" + (plus + numericConstant).Q()) |
+                                        numericConstant |
+                                        ("last" + (minus + numericConstant).Q());
+            specialWindowAttribute.Rule = (ToTerm("black") | "blue" | "cyan" | "green" | "magenta" | "red" | "white" |
+                                            "yellow" | "bold" | "dim" | "normal" | "invisible") |
+                                          "reverse" | "border" |
+                                          ((ToTerm("prompt") | "form" | "menu" | "message") + "line" + reservedLinePosition) |
+                                          ("comment" + "line" + (reservedLinePosition | "off"));
+            windowAttribute.Rule = oneOrMoreSpecialWindowAttributes;
+            oneOrMoreSpecialWindowAttributes.Rule = MakePlusRule(oneOrMoreSpecialWindowAttributes, comma, specialWindowAttribute);
+            windowAttributeList.Rule = (ToTerm("attribute") | "attributes") + Lpar + windowAttribute + Rpar;
+                                   
 
             // dummy for test
             databaseDeclaration.Rule = "database";
@@ -433,14 +640,8 @@ namespace Irony.Samples.Informix4GL
             variableOrConstantList.Rule = "varConstList";
             tableIdentifier.Rule = "tableId";
             sqlStatements.Rule = "sqlStatements";
-            otherFGLStatement.Rule = "otherFGLStatement";
             menuInsideStatement.Rule = "menuInsideStatement";
-            constructInsideStatement.Rule = "constructInsideStatement";
-            displayInsideStatement.Rule = "displayInsideStatement";
-            inputInsideStatement.Rule = "inputInsideStatement";
-
-            caseStatement.Rule = "caseStatement";
-            forEachStatement.Rule = "foreach";
+            screenStatement.Rule = "screenstatement";
         }
     }
 }
