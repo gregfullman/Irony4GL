@@ -51,6 +51,7 @@ namespace Irony.Samples.Informix4GL
             KeyTerm RCbr = ToTerm("}");
             KeyTerm Lpar = ToTerm("(");
             KeyTerm Rpar = ToTerm(")");
+            KeyTerm AtSym = ToTerm("@");
             KeyTerm tgoto = ToTerm("goto");
             KeyTerm not = ToTerm("not");
             //KeyTerm yld = ToTerm("yield");
@@ -279,6 +280,63 @@ namespace Irony.Samples.Informix4GL
             var windowAttribute = new NonTerminal("windowAttribute");
             var windowAttributeList = new NonTerminal("windowAttributeList");
 
+            var optionStatement = new NonTerminal("optionStatement");
+            var optionsStatement = new NonTerminal("optionsStatement");
+            var oneOrMoreOptionsStatements = new NonTerminal("oneOrMoreOptionsStatements");
+            var oneOrMoreFieldLists = new NonTerminal("oneOrMoreFieldLists");
+            var cursorManipulationStatement = new NonTerminal("cursorManipulationStatement");
+            var dataDefinitionStatement = new NonTerminal("dataDefinitionStatement");
+            var dataManipulationStatement = new NonTerminal("dataManipulationStatement");
+            var dynamicManagementStatement = new NonTerminal("dynamicManagementStatement");
+            var queryOptimizationStatement = new NonTerminal("queryOptimizationStatement");
+            var dataIntegrityStatement = new NonTerminal("dataIntegrityStatement");
+            var clientServerStatement = new NonTerminal("clientServerStatement");
+
+            var cursorName = new NonTerminal("cursorName");
+            var sqlInsertStatement = new NonTerminal("sqlInsertStatement");
+            var statementId = new NonTerminal("statementId");
+
+            var dataType = new NonTerminal("dataType");
+            var columnItem = new NonTerminal("columnItem");
+            var oneOrMoreColumnItems = new NonTerminal("oneOrMoreColumnItems");
+            var oneOrMoreConstantIdentifiersWithAscDesc = new NonTerminal("oneOrMoreConstantIdentifiersWithAscDesc");
+            var constantIdentifierWithAscDesc = new NonTerminal("constantIdentifierWithAscDesc");
+
+            var sqlDeleteStatement = new NonTerminal("sqlDeleteStatement");
+            var sqlUpdateStatement = new NonTerminal("sqlUpdateStatement");
+            var sqlLoadStatement = new NonTerminal("sqlLoadStatement");
+            var sqlUnLoadStatement = new NonTerminal("sqlUnLoadStatement");
+            var mainSelectStatement = new NonTerminal("mainSelectStatement");
+            var selectList = new NonTerminal("selectList");
+            var sqlExpressionsWithSqlAlias = new NonTerminal("sqlExpressionsWithSqlAlias");
+            var headSelectStatement = new NonTerminal("headSelectStatement");
+            var tableQualifier = new NonTerminal("tableQualifier");
+            var fromTable = new NonTerminal("fromTable");
+            var tableExpression = new NonTerminal("tableExpression");
+            var simpleSelectStatement = new NonTerminal("simpleSelectStatement");
+            var fromSelectStatement = new NonTerminal("fromSelectStatement");
+            var oneOrMoreFromTableExpressions = new NonTerminal("oneOrMoreFromTableExpressions");
+            var fromTableExpression = new NonTerminal("fromTableExpression");
+            var aliasName = new NonTerminal("aliasName");
+            var whereStatement = new NonTerminal("whereStatement");
+            var groupByStatement = new NonTerminal("groupByStatement");
+            var havingStatement = new NonTerminal("havingStatement");
+            var unionSelectStatement = new NonTerminal("unionSelectStatement");
+            var orderbyStatement = new NonTerminal("orderbyStatement");
+            var orderbyColumn = new NonTerminal("orderbyColumn");
+            var oneOrMoreOrderByColumns = new NonTerminal("oneOrMoreOrderByColumns");
+            var oneOrMoreColumnsTableIdEqualExpressions = new NonTerminal("oneOrMoreColumnsTableIdEqualExpressions");
+            var columnsTableIdEqualExpression = new NonTerminal("columnsTableIdEqualExpression");
+            var wheneverStatement = new NonTerminal("wheneverStatement");
+            var wheneverType = new NonTerminal("wheneverType");
+            var wheneverFlow = new NonTerminal("wheneverFlow");
+
+            var outputReport = new NonTerminal("outputReport");
+            var formatReport = new NonTerminal("formatReport");
+            var oneOrMoreReportCodeBlocks = new NonTerminal("oneOrMoreReportCodeBlocks");
+            var reportCodeBlock = new NonTerminal("reportCodeBlock");
+
+
             /************************************************************************************************************/
             // initialize the root
             Root = compilation_unit;
@@ -495,6 +553,7 @@ namespace Irony.Samples.Informix4GL
             forEachStatement.Rule = "foreach" + Identifier + ("using" + variableList).Q() + ("into" + variableList).Q() +
                                     (ToTerm("with") + "reoptimization").Q() + codeBlock.Q() + "end" + "foreach";
             variableList.Rule = oneOrMoreVariables;
+            variableOrConstantList.Rule = oneOrMoreExpressions;
 
             whenExpression.Rule = "when" + expression + codeBlock.Q();
             whenIf.Rule = "when" + ifCondition + codeBlock;
@@ -560,6 +619,7 @@ namespace Irony.Samples.Informix4GL
             oneOrMoreSpecialAttributes.Rule = MakePlusRule(oneOrMoreSpecialAttributes, comma, specialAttribute);
             attributeList.Rule = (ToTerm("attribute") | "attributes") + Lpar + attribute + Rpar;
             constructGroupStatement.Rule = constructEvents + oneOrMoreCodeBlocks;
+            oneOrMoreConstructGroupStatements.Rule = MakePlusRule(oneOrMoreConstructGroupStatements, null, constructGroupStatement);
             oneOrMoreCodeBlocks.Rule = MakePlusRule(oneOrMoreCodeBlocks, null, codeBlock);
             constructStatement.Rule = "construct" +
                                       (("by" + "name" + variable + "on" + columnsList) |
@@ -632,16 +692,181 @@ namespace Irony.Samples.Informix4GL
             windowAttribute.Rule = oneOrMoreSpecialWindowAttributes;
             oneOrMoreSpecialWindowAttributes.Rule = MakePlusRule(oneOrMoreSpecialWindowAttributes, comma, specialWindowAttribute);
             windowAttributeList.Rule = (ToTerm("attribute") | "attributes") + Lpar + windowAttribute + Rpar;
-                                   
 
-            // dummy for test
-            databaseDeclaration.Rule = "database";
-            reportDefinition.Rule = "reportDef";
-            variableOrConstantList.Rule = "varConstList";
-            tableIdentifier.Rule = "tableId";
-            sqlStatements.Rule = "sqlStatements";
-            menuInsideStatement.Rule = "menuInsideStatement";
-            screenStatement.Rule = "screenstatement";
+            optionStatement.Rule = ((ToTerm("message") | "prompt" | "menu" | "comment" | "error" | "form") + "line" + expression) |
+                                   ((ToTerm("insert") | "delete" | "next" | "previous" | "accept" | "help") + "key" + expression) |
+                                   ("input" + (ToTerm("wrap") | ("no" + "wrap"))) |
+                                   ("help" + "file" + expression) |
+                                   ((ToTerm("input") | "display") + attributeList) |
+                                   ("sql" + "interrupt" + (ToTerm("on") | "off")) |
+                                   ("field" + "order" + (ToTerm("constrained") | "unconstrained"));
+            optionsStatement.Rule = "option" + oneOrMoreOptionsStatements;
+            oneOrMoreOptionsStatements.Rule = MakePlusRule(oneOrMoreOptionsStatements, comma, optionStatement);
+
+            screenStatement.Rule = ("clear" + ("form" | ("window" + Identifier) | (ToTerm("window").Q() + "screen") | fieldList)) |
+                                   ("close" + "window" + Identifier) |
+                                   ("close" + "form" + Identifier) |
+                                   constructStatement |
+                                   ("current" + "window" + "is" + ("screen" | Identifier)) |
+                                   displayStatement |
+                                   displayArrayStatement |
+                                   ("display" + "form" + Identifier + attributeList.Q()) |
+                                   errorStatement |
+                                   messageStatement |
+                                   promptStatement |
+                                   inputStatement |
+                                   inputArrayStatement |
+                                   menuStatement |
+                                   ("open" + "form" + expression + "from" + expression) |
+                                   ("open" + "window" + expression + "at" + expression + "from" + expression +
+                                        (("with" + "form" + expression) | ("with" + expression + "rows" + "comma" + expression + "columns"))
+                                    + windowAttributeList.Q()) |
+                                   optionsStatement |
+                                   ("scroll" + oneOrMoreFieldLists + (ToTerm("up") | "down") + ("by" + numericConstant).Q());
+            oneOrMoreFieldLists.Rule = MakePlusRule(oneOrMoreFieldLists, comma, fieldList);
+
+            sqlStatements.Rule = cursorManipulationStatement |
+                                 dataDefinitionStatement |
+                                 dataManipulationStatement |
+                                 dynamicManagementStatement |
+                                 queryOptimizationStatement |
+                                 dataIntegrityStatement |
+                                 clientServerStatement;
+
+            cursorManipulationStatement.Rule = ("close" + cursorName) |
+                                               ("declare" + cursorName +
+                                                    ("cursor" + (ToTerm("with") + "hold").Q() + "for" +
+                                                        ((sqlSelectStatement + ("for" + "update" + ("of" + columnsList).Q()).Q()) |
+                                                         sqlInsertStatement |
+                                                         statementId)
+                                                    ) |
+                                                    ("scroll" + "cursor" + (ToTerm("with") + "hold").Q() + "for" +
+                                                        (sqlSelectStatement | statementId))
+                                                ) |
+                                                ("fetch" +
+                                                    ("next" | (ToTerm("previous") | "prior") | "first" | "last" | "current" |
+                                                        ("relative" + expression) | ("absolute" | expression)).Q() +
+                                                    cursorName + ("into" + variableList).Q()) |
+                                                ("flush" + cursorName) |
+                                                ("open" + cursorName + ("using" + variableList).Q()) |
+                                                ("put" + cursorName + ("from" + variableOrConstantList).Q());
+            columnsList.Rule = MakeStarRule(columnsList, comma, columnsTableId);
+            statementId.Rule = constantIdentifier;
+            cursorName.Rule = Identifier;
+            dataType.Rule = type;
+            columnItem.Rule = constantIdentifier +
+                                (dataType | ((ToTerm("byte") | "text") + ("in" + ("table" | constantIdentifier)).Q()) + (ToTerm("not") + "null").Q()) |
+                              ("unique" + Lpar + oneOrMoreConstantIdentifiers.Q() + Rpar + ("constraint" + constantIdentifier).Q());
+            oneOrMoreColumnItems.Rule = MakePlusRule(oneOrMoreColumnItems, comma, columnItem);
+            dataDefinitionStatement.Rule = ("drop" + "table" + constantIdentifier) |
+                                           ("create" + ToTerm("temp").Q() + "table" + constantIdentifier +
+                                                Lpar + oneOrMoreColumnItems + Rpar +
+                                                (ToTerm("with") + "no" + "log").Q() +
+                                                ("in" + constantIdentifier).Q() +
+                                                ("extent" + "size" + numericConstant).Q() +
+                                                ("next" + "size" + numericConstant).Q() +
+                                                ("lock" + "mode" + Lpar + (ToTerm("page") | "row") + Rpar).Q()) |
+                                           ("create" + ToTerm("unique").Q() + ToTerm("cluster").Q() +
+                                                "index" + constantIdentifier + "on" + constantIdentifier +
+                                                Lpar + oneOrMoreConstantIdentifiersWithAscDesc + Rpar) |
+                                           ("drop" + "index" + constantIdentifier);
+            constantIdentifierWithAscDesc.Rule = constantIdentifier + (ToTerm("asc") | "desc").Q();
+            oneOrMoreConstantIdentifiersWithAscDesc.Rule = MakePlusRule(oneOrMoreConstantIdentifiersWithAscDesc, comma, constantIdentifierWithAscDesc);
+
+            dataManipulationStatement.Rule = sqlInsertStatement |
+                                             sqlSelectStatement |
+                                             sqlInsertStatement |
+                                             sqlUpdateStatement |
+                                             sqlLoadStatement |
+                                             sqlUnLoadStatement;
+            sqlSelectStatement.Rule = mainSelectStatement;
+            columnsTableId.Rule = star | (tableIdentifier + indexingVariable.Q() + ((dot + star) | (dot + columnsTableId)).Q());
+            selectList.Rule = MakePlusRule(selectList, comma, sqlExpressionsWithSqlAlias);
+            sqlExpressionsWithSqlAlias.Rule = sqlExpression + sqlAlias.Q();
+            headSelectStatement.Rule = "select" + ("all" | (ToTerm("distinct") | "unique")).Q() + selectList;
+            tableQualifier.Rule = (((constantIdentifier + colon) | (constantIdentifier + AtSym + constantIdentifier + colon)).Q() |
+                                   StringLiteral.Q()).Q();
+            tableQualifier.AddHintToAll(ReduceIf(".", ":", "@"));
+            //var tableIdHint = ReduceIf(".", ":", "@");
+            tableIdentifier.Rule = tableQualifier + constantIdentifier;     // TODO: constantIdentifier is consumed in the tableQualifier rule, so a colon or @ is required.
+
+            fromTable.Rule = ToTerm("outer").Q() + tableIdentifier + sqlAlias.Q();
+            tableExpression.Rule = simpleSelectStatement;
+            fromTableExpression.Rule = fromTable | (Lpar + tableExpression + Rpar + sqlAlias.Q());
+            oneOrMoreFromTableExpressions.Rule = MakePlusRule(oneOrMoreFromTableExpressions, comma, fromTableExpression);
+            fromSelectStatement.Rule = "from" + oneOrMoreFromTableExpressions;
+            aliasName.Rule = Identifier;
+
+            mainSelectStatement.Rule = headSelectStatement + ("into" + variableList).Q() +
+                                       fromSelectStatement + whereStatement.Q() +
+                                       groupByStatement.Q() + havingStatement.Q() +
+                                       unionSelectStatement.Q() + orderbyStatement.Q() +
+                                       ("into" + "temp" + Identifier).Q() +
+                                       (ToTerm("with") + "no" + "log").Q();
+            unionSelectStatement.Rule = "union" + ToTerm("all").Q() + simpleSelectStatement;
+            simpleSelectStatement.Rule = headSelectStatement +
+                                         fromSelectStatement +
+                                         whereStatement.Q() +
+                                         groupByStatement.Q() +
+                                         havingStatement.Q() +
+                                         unionSelectStatement.Q();
+            whereStatement.Rule = "where" + condition;
+            groupByStatement.Rule = "group" + "by" + variableOrConstantList;
+            havingStatement.Rule = "having" + condition;
+            orderbyColumn.Rule = expression + (ToTerm("asc") | "desc").Q();
+            orderbyStatement.Rule = "order" + "by" + oneOrMoreOrderByColumns;
+            oneOrMoreOrderByColumns.Rule = MakePlusRule(oneOrMoreOrderByColumns, comma, orderbyColumn);
+            sqlLoadStatement.Rule = "load" + "from" + (variable | StringLiteral) +
+                                    ("delimiter" + (variable | StringLiteral)).Q() +
+                                    (("insert" + "into" + tableIdentifier + (Lpar + columnsList + Rpar).Q()) |
+                                        sqlInsertStatement);
+            sqlUnLoadStatement.Rule = "unload" + "to" + (variable | StringLiteral) +
+                                      ("delimiter" + (variable | StringLiteral)).Q() +
+                                      sqlSelectStatement;
+            sqlInsertStatement.Rule = "insert" + "into" + tableIdentifier + (Lpar + columnsList + Rpar).Q() +
+                                      (("values" + Lpar + oneOrMoreExpressions + Rpar) | simpleSelectStatement);
+            sqlUpdateStatement.Rule = "update" + tableIdentifier + "set" +
+                                      (oneOrMoreColumnsTableIdEqualExpressions |
+                                            ((Lpar + columnsList + Rpar) | ((aliasName + dot).Q() + star)) +
+                                            equal + ((Lpar + oneOrMoreExpressions + Rpar) | ((aliasName + dot).Q() + star))) +
+                                      ("where" + (condition | ("current" + "of" + cursorName))).Q();
+            columnsTableIdEqualExpression.Rule = columnsTableId + equal + expression;
+            oneOrMoreColumnsTableIdEqualExpressions.Rule = MakePlusRule(oneOrMoreColumnsTableIdEqualExpressions, comma, columnsTableIdEqualExpression);
+            sqlDeleteStatement.Rule = "delete" + "from" + tableIdentifier +
+                                      ("where" + (condition | ("current" + "of" + cursorName))).Q();
+            dynamicManagementStatement.Rule = ("prepare" + cursorName + "from" + expression) |
+                                              ("execute" + cursorName + ("using" + variableList).Q()) |
+                                              ("free" + (cursorName | statementId)) |
+                                              ("lock" + "table" + expression + "in" + (ToTerm("share") | "exclusive") + "mode");
+            queryOptimizationStatement.Rule = ("update" + "statistics" + ("for" + "table" + tableIdentifier).Q()) |
+                                              ("set" + "lock" + "mode" + "to" + (("wait" + ToTerm("seconds").Q()) | "not" + "wait")) |      // TODO: not sure if that's right...
+                                              ("set" + "explain" + (ToTerm("on") | "off")) |
+                                              ("set" + "isolation" + "to" +
+                                                (("cursor" + "stability") | ((ToTerm("dirty") | "committed" | "repeatable") + "read"))) |
+                                              ("set" + ToTerm("buffered").Q() + "log");
+            databaseDeclaration.Rule = "database" + constantIdentifier + (AtSym + constantIdentifier).Q() + ToTerm("exclusive").Q() + semi.Q();
+            clientServerStatement.Rule = ToTerm("close") + "database";
+            dataIntegrityStatement.Rule = wheneverStatement |
+                                          ((ToTerm("begin") | "commit" | "rollback") + "work");
+            wheneverStatement.Rule = "whenever" + wheneverType + wheneverFlow;
+            wheneverType.Rule = (ToTerm("not") + "found") |
+                                (ToTerm("any").Q() + (ToTerm("sqlerror") | "error")) |
+                                (ToTerm("sqlwarning") | "warning");
+            wheneverFlow.Rule = "continue" | ToTerm("stop") | ("call" + Identifier) |
+                                ((("go" + "to") | ToTerm("goto")) + colon.Q() + Identifier);
+
+            reportDefinition.Rule = "report" + Identifier + parameterList + typeDeclarations.Q() +
+                                    outputReport.Q() + ("order" + ToTerm("external").Q() + "by" + variableList).Q() +
+                                    formatReport.Q() + "end" + "report";
+            outputReport.Rule = "output" + ("report" + "to" + (StringLiteral | ("pipe" + StringLiteral) | "printer")).Q() +
+                                zeroOrMoreReportDimensionSpecifiers;
+            formatReport.Rule = "format" + ((ToTerm("every") + "row") | oneOrMoreReportCodeBlocks);
+            oneOrMoreReportCodeBlocks.Rule = MakePlusRule(oneOrMoreReportCodeBlocks, null, reportCodeBlock);
+            reportCodeBlock.Rule = ((ToTerm("first").Q() + "page" + "header") |
+                                    (ToTerm("page") + "trailer") |
+                                    (ToTerm("on") + ((ToTerm("every") + "row") | (ToTerm("last") + "row"))) |
+                                    ((ToTerm("before") | "after") + "group" + "of" + variable))
+                                   + codeBlock;
         }
     }
 }
