@@ -1,4 +1,3 @@
-# This is the working test example for Informix 4gl parsing
 #database
 #global
 define x bigint   # required
@@ -18,7 +17,7 @@ end main
 function functionId (param1 para2)
 
     define z decimal(3,2)   #required
-    define rec record like tableId.*
+    define rec record like gfullman@domain:tableId.*
     define arr array[3] of int
     
     #simple expression - assignment

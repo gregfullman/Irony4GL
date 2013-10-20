@@ -3,12 +3,50 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Irony.Parsing;
+using System.Globalization;
 
 namespace Irony.Samples.Informix4GL
 {
+    public static class Informix4GLTerminalFactory
+    {
+        public static IdentifierTerminal CreateIdentifier(string name)
+        {
+            IdentifierTerminal id = new IdentifierTerminal(name, IdOptions.AllowsEscapes | IdOptions.CanStartWithEscape);
+            //id.AddPrefix("@", IdOptions.IsNotKeyword);
+            //From spec:
+            //Start char is "_" or letter-character, which is a Unicode character of classes Lu, Ll, Lt, Lm, Lo, or Nl 
+            id.StartCharCategories.AddRange(new UnicodeCategory[] {
+         UnicodeCategory.UppercaseLetter, //Ul
+         UnicodeCategory.LowercaseLetter, //Ll
+         UnicodeCategory.TitlecaseLetter, //Lt
+         UnicodeCategory.ModifierLetter,  //Lm
+         UnicodeCategory.OtherLetter,     //Lo
+         UnicodeCategory.LetterNumber     //Nl
+      });
+            //Internal chars
+            /* From spec:
+            identifier-part-character: letter-character | decimal-digit-character | connecting-character |  combining-character |
+                formatting-character
+      */
+            id.CharCategories.AddRange(id.StartCharCategories); //letter-character categories
+            id.CharCategories.AddRange(new UnicodeCategory[] {
+        UnicodeCategory.DecimalDigitNumber, //Nd
+        UnicodeCategory.ConnectorPunctuation, //Pc
+        UnicodeCategory.SpacingCombiningMark, //Mc
+        UnicodeCategory.NonSpacingMark,       //Mn
+        UnicodeCategory.Format                //Cf
+      });
+            //Chars to remove from final identifier
+            id.CharsToRemoveCategories.Add(UnicodeCategory.Format);
+            return id;
+        }
+    }
+
     [Language("4GL", "1.0", "Informix 4GL Grammar")]
     public class Informix4GLGrammar : Grammar
     {
+        
+
         public Informix4GLGrammar()
         {
             // Use C#'s string literal for right now
@@ -21,7 +59,7 @@ namespace Irony.Samples.Informix4GL
             NumberLiteral Number = TerminalFactory.CreateCSharpNumber("Number");
 
             // Use C#'s identifier for right now
-            IdentifierTerminal Identifier = TerminalFactory.CreateCSharpIdentifier("Identifier");
+            IdentifierTerminal Identifier = Informix4GLTerminalFactory.CreateIdentifier("Identifier");
 
             // Symbols
             KeyTerm plus = ToTerm("+", "plus");
@@ -784,12 +822,10 @@ namespace Irony.Samples.Informix4GL
             selectList.Rule = MakePlusRule(selectList, comma, sqlExpressionsWithSqlAlias);
             sqlExpressionsWithSqlAlias.Rule = sqlExpression + sqlAlias.Q();
             headSelectStatement.Rule = "select" + ("all" | (ToTerm("distinct") | "unique")).Q() + selectList;
-            tableQualifier.Rule = (((constantIdentifier + colon) | (constantIdentifier + AtSym + constantIdentifier + colon)).Q() |
-                                   StringLiteral.Q()).Q();
-            tableQualifier.AddHintToAll(ReduceIf(".", ":", "@"));
-            //var tableIdHint = ReduceIf(".", ":", "@");
-            tableIdentifier.Rule = tableQualifier + constantIdentifier;     // TODO: constantIdentifier is consumed in the tableQualifier rule, so a colon or @ is required.
-
+            tableIdentifier.Rule = ((constantIdentifier + AtSym + constantIdentifier + colon + constantIdentifier) |
+                                        (constantIdentifier + colon + constantIdentifier) |
+                                        constantIdentifier);     // TODO: might still be wrong, but it's a better attempt at removing reduce-reduce conflict
+            
             fromTable.Rule = ToTerm("outer").Q() + tableIdentifier + sqlAlias.Q();
             tableExpression.Rule = simpleSelectStatement;
             fromTableExpression.Rule = fromTable | (Lpar + tableExpression + Rpar + sqlAlias.Q());
