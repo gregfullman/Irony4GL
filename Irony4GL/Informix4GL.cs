@@ -47,7 +47,7 @@ namespace Irony.Samples.Informix4GL
     {
         
 
-        public Informix4GLGrammar()
+        public Informix4GLGrammar() : base(false)
         {
             // Use C#'s string literal for right now
             StringLiteral StringLiteral = TerminalFactory.CreateCSharpString("StringLiteral");
@@ -229,7 +229,6 @@ namespace Irony.Samples.Informix4GL
             var oneOrMoreFactors = new NonTerminal("oneOrMoreFactors");
             var multiplyingOperator = new NonTerminal("multiplyingOperator");
             var factor = new NonTerminal("factor");
-            var functionDesignator = new NonTerminal("functionDesignator");
             var constant = new NonTerminal("constant");
 
             var entireVariable = new NonTerminal("entireVariable");
@@ -374,22 +373,28 @@ namespace Irony.Samples.Informix4GL
             var oneOrMoreReportCodeBlocks = new NonTerminal("oneOrMoreReportCodeBlocks");
             var reportCodeBlock = new NonTerminal("reportCodeBlock");
 
+            var includeDefinitions = new NonTerminal("includeDefinitions");
+            var includeDefinition = new NonTerminal("includeDefinition");
+            var typeDefinition = new NonTerminal("typeDefinition");
+            var typeDefinitions = new NonTerminal("typeDefinitions");
 
             /************************************************************************************************************/
             // initialize the root
             Root = compilation_unit;
 
-            constantIdentifier.Rule = ToTerm("accept") | "ascii" | "count" | "current" | "false" | "first" | "found" | "group" |
-                                      "hide" | "index" | "int_flag" | "interrupt" | "last" | "length" | "lineno" | "mdy" | "no" |
-                                      "not" | "notfound" | "null" | "pageno" | "real" | "size" | "sql" | "status" | "temp" | "time" |
-                                      "today" | "true" | "user" | "wait" | "weekday" | "work" | Identifier;
+            
 
             // Rules
             compilation_unit.Rule = databaseDeclaration.Q() +
+                                    includeDefinitions.Q() +
                                     globalDeclaration.Q() +
+                                    typeDefinitions +
                                     typeDeclarations +
                                     mainBlock.Q() +
                                     functionOrReportDefinitions;
+
+            includeDefinition.Rule = ToTerm("&") + "include" + StringLiteral;
+            includeDefinitions.Rule = MakeStarRule(includeDefinitions, null, includeDefinition);
 
             deferStatementOrCodeBlock.Rule = deferStatement | codeBlock;    // derived
             
@@ -421,6 +426,9 @@ namespace Irony.Samples.Informix4GL
             typeDeclaration.Rule = "define" + oneOrMoreVariableDeclarations;
             typeDeclarations.Rule = MakeStarRule(typeDeclarations, typeDeclaration);
 
+            typeDefinition.Rule = "type" + Identifier + type;
+            typeDefinitions.Rule = MakeStarRule(typeDefinitions, typeDefinition);
+
             oneOrMoreConstantIdentifiers.Rule = MakePlusRule(oneOrMoreConstantIdentifiers, comma, constantIdentifier);
             constantIdentifierAndTypePair.Rule = constantIdentifier + type;
             oneOrMoreConstantIdentifierAndTypePairs.Rule = MakePlusRule(oneOrMoreConstantIdentifierAndTypePairs, comma, constantIdentifierAndTypePair);
@@ -436,7 +444,8 @@ namespace Irony.Samples.Informix4GL
                               ((ToTerm("decimal") | "dec" | "numeric" | "money") + ((Lpar + numericConstant + ("," + numericConstant).Q() + Rpar) | Empty)) |
                               ((ToTerm("float") | "double") + ((Lpar + numericConstant + Rpar) | Empty));
             charType.Rule = ((ToTerm("varchar") | "nvarchar") + Lpar + numericConstant + ("," + numericConstant).Q() + Rpar) |
-                            ((ToTerm("char") | "nchar" | "character") + ((Lpar + numericConstant + Rpar) | Empty));
+                            ((ToTerm("char") | "nchar" | "character") + ((Lpar + numericConstant + Rpar) | Empty)) |
+                            "string";
             timeType.Rule = "date" | ("datetime" + datetimeQualifier) | ("interval" + intervalQualifier);
             datetimeQualifier.Rule = (ToTerm("year") + "to" + yearQualifier) |
                                      (ToTerm("month") + "to" + monthQualifier) |
@@ -465,7 +474,7 @@ namespace Irony.Samples.Informix4GL
             recordType.Rule = "record" + ((oneOrMoreVariableDeclarations + "end" + "record") | ("like" + tableIdentifier + dot + star));
             arrayIndexer.Rule = Lbr + numericConstant + ((comma + numericConstant) | (comma + numericConstant + comma + numericConstant)).Q() + Rbr;
             arrayType.Rule = "array" + arrayIndexer + "of" + (recordType | typeIdentifier | largeType);
-            dynArrayType.Rule = ToTerm("dynamic") + "array" + "with" + numericConstant + "dimensions" + "of" +
+            dynArrayType.Rule = ToTerm("dynamic") + "array" + ("with" + numericConstant + "dimensions").Q() + "of" +
                                 (recordType | typeIdentifier);
 
             statement.Rule = (label + colon).Q() + unlabelledStatement;
@@ -557,13 +566,20 @@ namespace Irony.Samples.Informix4GL
 
             term.Rule = MakePlusRule(term, multiplyingOperator, factor);
             multiplyingOperator.Rule = star | div | "mod";
-            factor.Rule = ((ToTerm("group").Q() + functionDesignator) | variable | constant | (Lpar + expression + Rpar) | (not + factor)) +
+            factor.Rule = ((ToTerm("group").Q() + 
+                                (functionIdentifier | variable | constant) +                // all of these conflict
+                                    (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q()) |
+                             (Lpar + expression + Rpar) | (not + factor)) +
                           ("units" + unitType).Q();
             
-            functionDesignator.Rule = functionIdentifier + (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q();
-            functionIdentifier.Rule = ToTerm("day") | "year" | "month" | "today" | "weekday" | "mdy" | "column" |
-                                      "sum" | "count" | "avg" | "min" | "max" | "extend" | "date" | "time" | "infield" |
+            functionIdentifier.Rule = ToTerm("day") | "year" | "month" | "column" |
+                                      "sum" | "avg" | "min" | "max" | "extend" | "date" | "infield" |
                                       "prepare" | constantIdentifier;
+
+            constantIdentifier.Rule = ToTerm("accept") | "ascii" | "count" | "current" | "false" | "first" | "found" | "group" |
+                                      "hide" | "index" | "int_flag" | "interrupt" | "last" | "length" | "lineno" | "mdy" | "no" |
+                                      "not" | "notfound" | "null" | "pageno" | "real" | "size" | "sql" | "status" | "temp" | "time" |
+                                      "today" | "true" | "user" | "wait" | "weekday" | "work" | Identifier;
 
             constant.Rule = numericConstant | constantIdentifier | (sign + Identifier) | Identifier | StringLiteral;
 
@@ -786,7 +802,7 @@ namespace Irony.Samples.Informix4GL
                                                         ("relative" + expression) | ("absolute" | expression)).Q() +
                                                     cursorName + ("into" + variableList).Q()) |
                                                 ("flush" + cursorName) |
-                                                ("open" + cursorName + ("using" + variableList).Q()) |
+                                                ("open" + cursorName + ("using" + variableOrConstantList).Q()) |
                                                 ("put" + cursorName + ("from" + variableOrConstantList).Q());
             columnsList.Rule = MakeStarRule(columnsList, comma, columnsTableId);
             statementId.Rule = constantIdentifier;
