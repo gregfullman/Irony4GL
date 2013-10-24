@@ -706,7 +706,7 @@ namespace Irony.Samples.Informix4GL
             displayInsideStatement.Rule = (ToTerm("continue") | "exit") + "display";
             displayEvents.Rule = "on" + "key" + Lpar + keyList + Rpar + oneOrMoreCodeBlocks;
             displayStatement.Rule = "display" +
-                                    (("by" + "name" + oneOrMoreExpressions) |
+                                    ((ToTerm("by") + "name" + oneOrMoreExpressions) |
                                      (("to" + fieldList) | ("at" + expression + comma + expression)).Q()) +
                                     attributeList.Q();
             errorStatement.Rule = "error" + oneOrMoreExpressions + attributeList.Q();
@@ -728,7 +728,7 @@ namespace Irony.Samples.Informix4GL
             inputGroupStatement.Rule = inputEvents + zeroOrMoreCodeBlocks;
             zeroOrMoreCodeBlocks.Rule = MakeStarRule(zeroOrMoreCodeBlocks, null, codeBlock);
             inputStatement.Rule = "input" +
-                                  (("by" + "name" + oneOrMoreExpressions +
+                                  ((ToTerm("by") + "name" + oneOrMoreExpressions +
                                     (ToTerm("without") + "defaults").Q()) |
                                    (oneOrMoreExpressions + (ToTerm("without") + "defaults").Q() + "from" + fieldList)) +
                                   attributeList.Q() +
@@ -744,14 +744,15 @@ namespace Irony.Samples.Informix4GL
             menuEvents.Rule = (ToTerm("before") + "menu") |
                               ("command" +
                                 (("key" + Lpar + keyList + Rpar).Q() +
-                                 expression + expression.Q() + ("help" + numericConstant).Q()));
+                                 expression + expression.Q() + ("help" + numericConstant).Q())) |
+                              ("on" + (ToTerm("idle") | "action") + Identifier);
             additionalExpression.Rule = comma + expression;
             zeroOrMoreAdditionalExpressions.Rule = MakeStarRule(zeroOrMoreAdditionalExpressions, null, additionalExpression);
             menuInsideStatement.Rule = ((ToTerm("next") | "show" | "hide") + "option" + (expression | "all") + zeroOrMoreAdditionalExpressions) |
                                        ((ToTerm("continue") | "exit") + "menu");
             menuGroupStatement.Rule = menuEvents + codeBlock.Q();
             zeroOrMoreMenuGroupStatements.Rule = MakeStarRule(zeroOrMoreMenuGroupStatements, null, menuGroupStatement);
-            menuStatement.Rule = "menu" + expression + zeroOrMoreMenuGroupStatements + "end" + "menu";
+            menuStatement.Rule = "menu" + expression + zeroOrMoreMenuGroupStatements + includeDefinitions.Q() + "end" + "menu";
             reservedLinePosition.Rule = ("first" + (plus + numericConstant).Q()) |
                                         numericConstant |
                                         ("last" + (minus + numericConstant).Q());
@@ -766,12 +767,12 @@ namespace Irony.Samples.Informix4GL
 
             optionStatement.Rule = ((ToTerm("message") | "prompt" | "menu" | "comment" | "error" | "form") + "line" + expression) |
                                    ((ToTerm("insert") | "delete" | "next" | "previous" | "accept" | "help") + "key" + expression) |
-                                   ("input" + (ToTerm("wrap") | ("no" + "wrap"))) |
+                                   ("input" + (ToTerm("wrap") | (ToTerm("no") + "wrap"))) |
                                    ("help" + "file" + expression) |
                                    ((ToTerm("input") | "display") + attributeList) |
                                    ("sql" + "interrupt" + (ToTerm("on") | "off")) |
                                    ("field" + "order" + (ToTerm("constrained") | "unconstrained"));
-            optionsStatement.Rule = "option" + oneOrMoreOptionsStatements;
+            optionsStatement.Rule = (ToTerm("option") | "options") + oneOrMoreOptionsStatements;
             oneOrMoreOptionsStatements.Rule = MakePlusRule(oneOrMoreOptionsStatements, comma, optionStatement);
 
             screenStatement.Rule = ("clear" + ("form" | ("window" + Identifier) | (ToTerm("window").Q() + "screen") | fieldList)) |
@@ -845,6 +846,7 @@ namespace Irony.Samples.Informix4GL
             oneOrMoreConstantIdentifiersWithAscDesc.Rule = MakePlusRule(oneOrMoreConstantIdentifiersWithAscDesc, comma, constantIdentifierWithAscDesc);
 
             dataManipulationStatement.Rule = sqlInsertStatement |
+                                             sqlDeleteStatement |
                                              sqlSelectStatement |
                                              sqlInsertStatement |
                                              sqlUpdateStatement |
@@ -901,7 +903,7 @@ namespace Irony.Samples.Informix4GL
                                       ("where" + (condition | ("current" + "of" + cursorName))).Q();
             columnsTableIdEqualExpression.Rule = columnsTableId + equal + expression;
             oneOrMoreColumnsTableIdEqualExpressions.Rule = MakePlusRule(oneOrMoreColumnsTableIdEqualExpressions, comma, columnsTableIdEqualExpression);
-            sqlDeleteStatement.Rule = "delete" + "from" + tableIdentifier +
+            sqlDeleteStatement.Rule = ToTerm("delete") + "from" + tableIdentifier +
                                       ("where" + (condition | ("current" + "of" + cursorName))).Q();
             dynamicManagementStatement.Rule = ("prepare" + cursorName + "from" + expression) |
                                               ("execute" + cursorName + ("using" + variableList).Q()) |
