@@ -378,6 +378,15 @@ namespace Irony.Samples.Informix4GL
             var typeDefinition = new NonTerminal("typeDefinition");
             var typeDefinitions = new NonTerminal("typeDefinitions");
 
+            //var builtInClassType = new NonTerminal("builtInClassType");
+            //var uiClassType = new NonTerminal("uiClassType");
+            //var baseClassType = new NonTerminal("baseClassType");
+            //var omClassType = new NonTerminal("omClassType");
+            var classChain = new NonTerminal("classChain");
+            //var extensionLibraryTypes = new NonTerminal("extensionLibraryTypes");
+            //var mathLibraryType = new NonTerminal("mathLibraryType");
+            //var osLibraryType = new NonTerminal("osLibraryType");
+
             /************************************************************************************************************/
             // initialize the root
             Root = compilation_unit;
@@ -436,10 +445,16 @@ namespace Irony.Samples.Informix4GL
 
             type.Rule = typeIdentifier | indirectType | largeType | structuredType;
             indirectType.Rule = "like" + tableIdentifier + dot + Identifier;
-            typeIdentifier.Rule = charType | numberType | timeType;
+            typeIdentifier.Rule = charType | numberType | timeType | classChain;
             largeType.Rule = ToTerm("text") | "byte";
             sign.Rule = plus | minus;
             numericConstant.Rule = Number | (sign + Number);
+
+            /*builtInClassType.Rule = uiClassType | baseClassType | omClassType;
+            uiClassType.Rule = "ui" + dot + (ToTerm("window") | "form" | "dialog" | "combobox" | "dragdrop");
+            baseClassType.Rule = "base" + dot + (ToTerm("channel") | "stringbuffer" | "stringtokenizer" | "typeinfo" | "messageserver");
+            omClassType.Rule = "om" + dot + (ToTerm("domnode") | "nodelist" | "saxattributes" | "saxdocumenthandler" | "xmlreader" | "xmlwriter");*/
+
             numberType.Rule = ToTerm("bigint") | "integer" | "int" | "smallint" | "real" | "smallfloat" |
                               ((ToTerm("decimal") | "dec" | "numeric" | "money") + ((Lpar + numericConstant + ("," + numericConstant).Q() + Rpar) | Empty)) |
                               ((ToTerm("float") | "double") + ((Lpar + numericConstant + Rpar) | Empty));
@@ -572,9 +587,11 @@ namespace Irony.Samples.Informix4GL
                              (Lpar + expression + Rpar) | (not + factor)) +
                           ("units" + unitType).Q();
             
+            classChain.Rule = MakePlusRule(classChain, dot, Identifier);
+
             functionIdentifier.Rule = ToTerm("day") | "year" | "month" | "column" |
                                       "sum" | "avg" | "min" | "max" | "extend" | "date" | "infield" |
-                                      "prepare" | constantIdentifier;
+                                      "prepare" | constantIdentifier | classChain;
 
             constantIdentifier.Rule = ToTerm("accept") | "ascii" | "count" | "current" | "false" | "first" | "found" | "group" |
                                       "hide" | "index" | "int_flag" | "interrupt" | "last" | "length" | "lineno" | "mdy" | "no" |
@@ -799,7 +816,7 @@ namespace Irony.Samples.Informix4GL
                                                 ) |
                                                 ("fetch" +
                                                     ("next" | (ToTerm("previous") | "prior") | "first" | "last" | "current" |
-                                                        ("relative" + expression) | ("absolute" | expression)).Q() +
+                                                        ("relative" + expression) | ("absolute" + expression)).Q() +
                                                     cursorName + ("into" + variableList).Q()) |
                                                 ("flush" + cursorName) |
                                                 ("open" + cursorName + ("using" + variableOrConstantList).Q()) |
