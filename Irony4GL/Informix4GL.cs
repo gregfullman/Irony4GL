@@ -441,9 +441,9 @@ namespace Irony.Samples.Informix4GL
             typeDefinitions.Rule = MakeStarRule(typeDefinitions, typeDefinition);
 
             oneOrMoreConstantIdentifiers.Rule = MakePlusRule(oneOrMoreConstantIdentifiers, comma, constantIdentifier);
-            constantIdentifierAndTypePair.Rule = constantIdentifier + type;
+            constantIdentifierAndTypePair.Rule = oneOrMoreConstantIdentifiers + type;
             oneOrMoreConstantIdentifierAndTypePairs.Rule = MakePlusRule(oneOrMoreConstantIdentifierAndTypePairs, comma, constantIdentifierAndTypePair);
-            variableDeclaration.Rule = (oneOrMoreConstantIdentifiers + type) | oneOrMoreConstantIdentifierAndTypePairs;
+            variableDeclaration.Rule = oneOrMoreConstantIdentifierAndTypePairs;
 
             type.Rule = typeIdentifier | indirectType | largeType | structuredType;
             indirectType.Rule = "like" + tableIdentifier + dot + Identifier;
