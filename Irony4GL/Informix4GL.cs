@@ -223,20 +223,20 @@ namespace Irony.Samples.Informix4GL
             var dateFunction = new NonTerminal("dateFunction");
             var otherFunction = new NonTerminal("otherFunction");
             var columnsTableId = new NonTerminal("columnsTableId");
-            var ifCondition = new NonTerminal("ifCondition");
-            var oneOrMoreIfCondition2s = new NonTerminal("oneOrMoreIfCondition2s");
-            var ifLogicalTerm = new NonTerminal("ifLogicalTerm");
-            var oneOrMoreIfLogicalTerms = new NonTerminal("oneOrMoreIfLogicalTerms");
-            var ifLogicalFactor = new NonTerminal("ifLogicalFactor");
-            var oneOrMoreIfLogicalFactors = new NonTerminal("oneOrMoreIfLogicalFactors");
+            //var ifCondition = new NonTerminal("ifCondition");
+            //var oneOrMoreIfCondition2s = new NonTerminal("oneOrMoreIfCondition2s");
+            //var ifLogicalTerm = new NonTerminal("ifLogicalTerm");
+            //var oneOrMoreIfLogicalTerms = new NonTerminal("oneOrMoreIfLogicalTerms");
+            //var ifLogicalFactor = new NonTerminal("ifLogicalFactor");
+            //var oneOrMoreIfLogicalFactors = new NonTerminal("oneOrMoreIfLogicalFactors");
 
             var simpleExpression = new NonTerminal("simpleExpression");
-            var term = new NonTerminal("term");
-            var oneOrMoreTerms = new NonTerminal("oneOrMoreTerms");
+            //var term = new NonTerminal("term");
+            //var oneOrMoreTerms = new NonTerminal("oneOrMoreTerms");
             var addingOperator = new NonTerminal("addingOperator");
             var oneOrMoreFactors = new NonTerminal("oneOrMoreFactors");
-            var multiplyingOperator = new NonTerminal("multiplyingOperator");
-            var factor = new NonTerminal("factor");
+            //var multiplyingOperator = new NonTerminal("multiplyingOperator");
+            //var factor = new NonTerminal("factor");
             var constant = new NonTerminal("constant");
 
             var entireVariable = new NonTerminal("entireVariable");
@@ -397,6 +397,23 @@ namespace Irony.Samples.Informix4GL
             //var mathLibraryType = new NonTerminal("mathLibraryType");
             //var osLibraryType = new NonTerminal("osLibraryType");
 
+            var primaryExpression = new NonTerminal("primaryExpression");
+            var parenthesizedExpression = new NonTerminal("parenthesizedExpression");
+            var binaryOperatorExpression = new NonTerminal("binaryOperatorExpression");
+            var unaryExpression = new NonTerminal("unaryExpression");
+            var literal = new NonTerminal("literal");
+            var binaryOperator = new NonTerminal("binaryOperator");
+            var unaryOperator = new NonTerminal("unaryOperator");
+            var memberAccess = new NonTerminal("memberAccess");
+            var memberAccessSegment = new NonTerminal("memberAccessSegment");
+            var memberAccessSegmentOpt = new NonTerminal("memberAccessSegmentOpt");
+            var argument = new NonTerminal("argument");
+            var argumentList = new NonTerminal("argumentList");
+            var argumentListOpt = new NonTerminal("argumentListOpt");
+            var argumentListPar = new NonTerminal("argumentListPar");
+            var expressionList = new NonTerminal("expressionList");
+
+
             /************************************************************************************************************/
             // initialize the root
             Root = compilation_unit;
@@ -497,7 +514,10 @@ namespace Irony.Samples.Informix4GL
 
             structuredType.Rule = recordType | arrayType | dynArrayType;
             recordType.Rule = "record" + ((oneOrMoreVariableDeclarations + "end" + "record") | ("like" + tableIdentifier + dot + star));
-            arrayIndexer.Rule = Lbr + numericConstant + ((comma + numericConstant) | (comma + numericConstant + comma + numericConstant)).Q() + Rbr;
+            arrayIndexer.Rule = Lbr + expressionList + Rbr;
+            expressionList.Rule = MakePlusRule(expressionList, comma, expression);
+
+
             arrayType.Rule = "array" + arrayIndexer + "of" + (recordType | typeIdentifier | largeType);
             dynArrayType.Rule = ToTerm("dynamic") + "array" + ("with" + numericConstant + "dimensions").Q() + "of" +
                                 (recordType | typeIdentifier);
@@ -523,9 +543,7 @@ namespace Irony.Samples.Informix4GL
             assignmentStatement.Rule = "let" + variable + singleEqual + oneOrMoreExpressions;
             oneOrMoreVariables.Rule = MakePlusRule(oneOrMoreVariables, comma, variable);
             oneOrMoreActualParameters.Rule = MakePlusRule(oneOrMoreActualParameters, comma, actualParameter);
-            procedureStatement.Rule = "call" + procedureIdentifier +
-                                      ((Lpar + oneOrMoreActualParameters.Q() + Rpar) | Empty) +
-                                      ("returning" + oneOrMoreVariables).Q();
+            procedureStatement.Rule = "call" + memberAccess + ("returning" + oneOrMoreVariables).Q();
             procedureIdentifier.Rule = functionIdentifier;
             actualParameter.Rule = star | expression;
             gotoStatement.Rule = "goto" + colon.Q() + label;
@@ -572,43 +590,67 @@ namespace Irony.Samples.Informix4GL
             otherFunction.Rule = ToTerm("decode") | "nvl" | constantIdentifier;
             relationalOperator.Rule = singleEqual | doubleEqual | nequal | le | lt | ge | gt | (not.Q() + "matches") | "like";
 
-            oneOrMoreIfCondition2s.Rule = MakePlusRule(oneOrMoreIfCondition2s, relationalOperator, oneOrMoreIfLogicalTerms);
-            ifCondition.Rule = ToTerm("true") | "false" | oneOrMoreIfCondition2s;
+            //oneOrMoreIfCondition2s.Rule = MakePlusRule(oneOrMoreIfCondition2s, relationalOperator, oneOrMoreIfLogicalTerms);
+            //ifCondition.Rule = ToTerm("true") | "false" | oneOrMoreIfCondition2s;
 
-            oneOrMoreIfLogicalTerms.Rule = MakePlusRule(oneOrMoreIfLogicalTerms, ToTerm("or"), ifLogicalTerm);
-            ifLogicalTerm.Rule = MakePlusRule(ifLogicalTerm, ToTerm("and"), ifLogicalFactor);
+            //oneOrMoreIfLogicalTerms.Rule = MakePlusRule(oneOrMoreIfLogicalTerms, ToTerm("or"), ifLogicalTerm);
+            //ifLogicalTerm.Rule = MakePlusRule(ifLogicalTerm, ToTerm("and"), ifLogicalFactor);
             clippedUsing.Rule = "clipped" | ("using" + StringLiteral);
             zeroOrMoreClippedUsings.Rule = MakeStarRule(zeroOrMoreClippedUsings, null, clippedUsing);
-            expression.Rule = (simpleExpression + zeroOrMoreClippedUsings);// | ifCondition;
-            ifLogicalFactor.Rule = (simpleExpression + "is" + not.Q() + "null") |
-                                   (not + ifCondition) |
-                                   (Lpar + ifCondition + Rpar) |
-                                   simpleExpression;
-            oneOrMoreTerms.Rule = MakePlusRule(oneOrMoreTerms, addingOperator, term);
-            simpleExpression.Rule = sign.Q() + oneOrMoreTerms;
-            addingOperator.Rule = plus | minus;
+            //expression.Rule = (simpleExpression + zeroOrMoreClippedUsings);// | ifCondition;
+            //ifLogicalFactor.Rule = (simpleExpression + "is" + not.Q() + "null") |
+            //                       (not + ifCondition) |
+            //                       (Lpar + ifCondition + Rpar) |
+            //                       simpleExpression;
+            //oneOrMoreTerms.Rule = MakePlusRule(oneOrMoreTerms, addingOperator, term);
+            //simpleExpression.Rule = sign.Q() + oneOrMoreTerms;
+            //addingOperator.Rule = plus | minus;
 
-            term.Rule = MakePlusRule(term, multiplyingOperator, factor);
-            multiplyingOperator.Rule = star | div | "mod";
-            factor.Rule = ((ToTerm("group").Q() + 
-                                (functionIdentifier | variable | constant) +                // all of these conflict
-                                (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q()
-                            ) |
-                            (Lpar + (expression | ifCondition) + Rpar) |
-                            (not + factor)
-                          ) +
-                          ("units" + unitType).Q();
-            
-            classChain.Rule = MakePlusRule(classChain, dot, Identifier);
+            //term.Rule = MakePlusRule(term, multiplyingOperator, factor);
+            //multiplyingOperator.Rule = star | div | "mod";
+            //factor.Rule = ((ToTerm("group").Q() + 
+            //                    (functionIdentifier | variable | constant) +                // all of these conflict
+            //                    (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q()
+            //                ) |
+            //                (Lpar + ifCondition + Rpar) |
+            //                (Lpar + expression + Rpar) |
+            //                (not + factor)
+            //              ) +
+            //              ("units" + unitType).Q();
+
+            classChain.Rule = MakePlusRule(classChain, dot, functionIdentifier);
 
             functionIdentifier.Rule = ToTerm("day") | "year" | "month" | "column" |
                                       "sum" | "avg" | "min" | "max" | "extend" | "date" | "infield" |
-                                      "prepare" | constantIdentifier | classChain;
+                                      "prepare" | constantIdentifier;
 
             constantIdentifier.Rule = ToTerm("accept") | "ascii" | "count" | "current" | "false" | "first" | "found" | "group" |
                                       "hide" | "index" | "int_flag" | "interrupt" | "last" | "length" | "lineno" | "mdy" | "no" |
-                                      "not" | "notfound" | "null" | "pageno" | "real" | "size" | "sql" | "status" | "temp" | "time" |
+                                      "notfound" | "null" | "pageno" | "real" | "size" | "sql" | "status" | "temp" | "time" |
                                       "today" | "true" | "user" | "wait" | "weekday" | "work" | Identifier;
+            
+            literal.Rule = Number | StringLiteral | "true" | "false" | "null";
+            primaryExpression.Rule = literal |
+                                     memberAccess |
+                                     unaryExpression |
+                                     parenthesizedExpression;
+            parenthesizedExpression.Rule = Lpar + expression + Rpar;
+            expression.Rule = (binaryOperatorExpression | primaryExpression) + zeroOrMoreClippedUsings;
+            binaryOperatorExpression.Rule = expression + binaryOperator + expression;
+            unaryExpression.Rule = unaryOperator + primaryExpression;
+            binaryOperator.Rule = ToTerm("<")
+                  | "==" | "!=" | ">" | "<=" | ">=" | "+" | "-" | "*" | "/" | "mod"
+                  | "=" | "+=" | "and" | "or" | "is" | (ToTerm("is") + "not");
+            unaryOperator.Rule = ToTerm("+") | "-" | "not";
+            memberAccess.Rule = classChain + memberAccessSegmentOpt;
+            memberAccessSegmentOpt.Rule = MakeStarRule(memberAccessSegmentOpt, null, memberAccessSegment);
+            memberAccessSegment.Rule = (dot + (Identifier | star)) |
+                                       arrayIndexer |
+                                       argumentListPar;
+            argumentListPar.Rule = Lpar + argumentListOpt + Rpar;
+            argumentListOpt.Rule = Empty | argumentList;
+            argumentList.Rule = MakePlusRule(argumentList, comma, argument);
+            argument.Rule = expression;
 
             constant.Rule = numericConstant | constantIdentifier | (sign + Identifier) | Identifier | StringLiteral;
 
@@ -623,9 +665,9 @@ namespace Irony.Samples.Informix4GL
             fieldIdentifier.Rule = constantIdentifier;
             structuredStatement.Rule = conditionalStatement | repetetiveStatement;
             conditionalStatement.Rule = ifStatement | caseStatement;
-            ifStatement.Rule = "if" + ifCondition + "then" + codeBlock.Q() + ("else" + codeBlock.Q()).Q() + "end" + "if";
+            ifStatement.Rule = "if" + expression + "then" + codeBlock.Q() + ("else" + codeBlock.Q()).Q() + "end" + "if";
             repetetiveStatement.Rule = whileStatement | forEachStatement | forStatement;
-            whileStatement.Rule = "while" + ifCondition + codeBlock.Q() + "end" + "while";
+            whileStatement.Rule = "while" + expression + codeBlock.Q() + "end" + "while";
             forStatement.Rule = "for" + controlVariable + singleEqual + forList + ("step" + numericConstant).Q() +
                                 codeBlock.Q() + "end" + "for";
             forList.Rule = initialValue + "to" + finalValue;
@@ -639,7 +681,7 @@ namespace Irony.Samples.Informix4GL
             variableOrConstantList.Rule = oneOrMoreExpressions;
 
             whenExpression.Rule = "when" + expression + codeBlock.Q();
-            whenIf.Rule = "when" + ifCondition + codeBlock;
+            whenIf.Rule = "when" + expression + codeBlock;
             zeroOrMoreWhenExpressions.Rule = MakeStarRule(zeroOrMoreWhenExpressions, null, whenExpression);
             zeroOrMoreWhenIfs.Rule = MakeStarRule(zeroOrMoreWhenIfs, null, whenIf);
             caseStatement.Rule = ("case" + expression + zeroOrMoreWhenExpressions +
