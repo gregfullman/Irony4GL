@@ -571,7 +571,7 @@ namespace Irony.Samples.Informix4GL
             ifLogicalTerm.Rule = MakePlusRule(ifLogicalTerm, ToTerm("and"), ifLogicalFactor);
             clippedUsing.Rule = "clipped" | ("using" + StringLiteral);
             zeroOrMoreClippedUsings.Rule = MakeStarRule(zeroOrMoreClippedUsings, null, clippedUsing);
-            expression.Rule = simpleExpression + zeroOrMoreClippedUsings;
+            expression.Rule = (simpleExpression + zeroOrMoreClippedUsings);// | ifCondition;
             ifLogicalFactor.Rule = (simpleExpression + "is" + not.Q() + "null") |
                                    (not + ifCondition) |
                                    (Lpar + ifCondition + Rpar) |
@@ -584,8 +584,11 @@ namespace Irony.Samples.Informix4GL
             multiplyingOperator.Rule = star | div | "mod";
             factor.Rule = ((ToTerm("group").Q() + 
                                 (functionIdentifier | variable | constant) +                // all of these conflict
-                                    (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q()) |
-                             (Lpar + expression + Rpar) | (not + factor)) +
+                                (Lpar + oneOrMoreActualParameters.Q() + Rpar).Q()
+                            ) |
+                            (Lpar + (expression | ifCondition) + Rpar) |
+                            (not + factor)
+                          ) +
                           ("units" + unitType).Q();
             
             classChain.Rule = MakePlusRule(classChain, dot, Identifier);
