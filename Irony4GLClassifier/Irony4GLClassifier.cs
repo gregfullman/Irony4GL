@@ -44,13 +44,14 @@ namespace Irony4GLClassifier
         private IClassificationTypeRegistryService classificationRegistryService;
         private ITextBuffer textBuffer;
         private Parser parser;
-        private Scanner scanner;
+        private Grammar grammar;
 
         internal Irony4GLClassifier(ITextBuffer textBuffer, IClassificationTypeRegistryService registry)
         {
             this.textBuffer = textBuffer;
             this.classificationRegistryService = registry;
-            parser = new Parser(new Informix4GLGrammar());
+            grammar = new Informix4GLGrammar();
+            parser = new Parser(grammar);
         }
 
         /// <summary>
@@ -72,16 +73,35 @@ namespace Irony4GLClassifier
             var tree = parser.Parse(span.GetText());
             foreach (var token in tree.Tokens)
             {
-                // TODO: need to send in tokens instead of null...obviously
-                classifications.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(span.Start, span.Length)),
-                                                               GetClassificationType(null)));
+                if (token.Terminal != grammar.Eof)
+                {
+                    // TODO: need to send in tokens instead of null...obviously
+                    classifications.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(span.Start, span.Length)),
+                                                                   GetClassificationType(token)));
+                }
             }
             return classifications;
         }
 
         private IClassificationType GetClassificationType(Token token)
         {
-            return this.classificationRegistryService.GetClassificationType("Irony4GLClassifier");
+            switch (token.EditorInfo.Color)
+            {
+                case TokenColor.Keyword:
+                    return this.classificationRegistryService.GetClassificationType("KEYWORD");
+                case TokenColor.Identifier:
+                    return this.classificationRegistryService.GetClassificationType("IDENTIFIER");
+                case TokenColor.Comment:
+                    return this.classificationRegistryService.GetClassificationType("COMMENT");
+                case TokenColor.String:
+                case TokenColor.Text:
+                    return this.classificationRegistryService.GetClassificationType("STRING");
+                case TokenColor.Number:
+                    return this.classificationRegistryService.GetClassificationType("NUMBER");
+                default:
+                    return this.classificationRegistryService.GetClassificationType("TEXT");
+            }
+            
         }
 
 #pragma warning disable 67
