@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Utilities;
 using Irony.Parsing;
+using Irony.Samples.Informix4GL;
 
 namespace Irony4GLClassifier
 {
@@ -42,11 +43,14 @@ namespace Irony4GLClassifier
         //public event EventHandler<ClassificationChangedEventArgs> ClassificationChanged;
         private IClassificationTypeRegistryService classificationRegistryService;
         private ITextBuffer textBuffer;
+        private Parser parser;
+        private Scanner scanner;
 
         internal Irony4GLClassifier(ITextBuffer textBuffer, IClassificationTypeRegistryService registry)
         {
             this.textBuffer = textBuffer;
             this.classificationRegistryService = registry;
+            parser = new Parser(new Informix4GLGrammar());
         }
 
         /// <summary>
@@ -64,9 +68,14 @@ namespace Irony4GLClassifier
             //create a list to hold the results
             List<ClassificationSpan> classifications = new List<ClassificationSpan>();
 
-            // TODO: need to send in tokens instead of null...obviously
-            classifications.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(span.Start, span.Length)),
-                                                           GetClassificationType(null)));   
+            //var tree = parser.ScanOnly(span.GetText(), "Source");
+            var tree = parser.Parse(span.GetText());
+            foreach (var token in tree.Tokens)
+            {
+                // TODO: need to send in tokens instead of null...obviously
+                classifications.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(span.Start, span.Length)),
+                                                               GetClassificationType(null)));
+            }
             return classifications;
         }
 
