@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
+using Irony.Parsing;
 
 namespace Informix4GLLanguage.Intellisense
 {
@@ -62,7 +63,7 @@ namespace Informix4GLLanguage.Intellisense
                     yield return new TagSpan<IOutliningRegionTag>(
                         new SnapshotSpan(currentSnapshot, 
                             startLine.Start.Position + region.StartOffset, length),
-                        new OutliningRegionTag(false, false, ellipsis, String.Empty));
+                        new OutliningRegionTag(false, false, (region.CollapsedText + ellipsis), String.Empty));
                 }
             }
         }
@@ -131,27 +132,44 @@ namespace Informix4GLLanguage.Intellisense
             }
         }
 
+        static string GetFirstAvailableTokenValue(ParseTreeNode node)
+        {
+            while (node != null && node.Token == null)
+            {
+                node = node.FirstChild;
+            }
+            return node != null ? node.Token.Value.ToString() : "";
+        }
+
         static void FindHiddenRegions(ITextSnapshot snapShot, Irony.Parsing.ParseTreeNode root, ref List<Region> regions)
         {
             foreach (var child in root.ChildNodes)
             {
                 Irony.Parsing.Token startToken = null;
                 Irony.Parsing.Token endToken = null;
+                string collapsedText = null;
                 int startOffset = 0;
 
-                if (child.Term.Name == "table constructor")
+                if (child.Term.Name == "mainBlock")
                 {
                     startToken = child.FirstChild.Token;    // '{' symbol
                     endToken = child.LastChild.Token;       // '}' symbol
+                    collapsedText = "main";
                 }
-                else if (child.Term.Name == "function body")
+                else if (child.Term.Name == "functionDefinition")
                 {
-                    startToken = child.ChildNodes[2].Token; // ')' symbol
-                    endToken = child.ChildNodes[4].Token;   // 'end' keyword
-                    
-                    //Offset the outline by 1 so we don't hide the ')' symbol.
-                    startOffset = 1;
+                    startToken = child.FirstChild.Token;    // '{' symbol
+                    endToken = child.LastChild.Token;       // '}' symbol
+                    collapsedText = "function " + (GetFirstAvailableTokenValue(child.ChildNodes[1]));
                 }
+                //else if (child.Term.Name == "function body")
+                //{
+                //    startToken = child.ChildNodes[2].Token; // ')' symbol
+                //    endToken = child.ChildNodes[4].Token;   // 'end' keyword
+                    
+                //    //Offset the outline by 1 so we don't hide the ')' symbol.
+                //    startOffset = 1;
+                //}
 
                 if (startToken != null && endToken != null)
                 {
@@ -171,7 +189,7 @@ namespace Informix4GLLanguage.Intellisense
 
                         region.EndLine = endToken.Location.Line;
                         region.EndOffset = endLineOffset;
-
+                        region.CollapsedText = collapsedText;
                         regions.Add(region);
                     }      
                 }
@@ -194,6 +212,7 @@ namespace Informix4GLLanguage.Intellisense
             public int StartOffset { get; set; }
             public int EndLine { get; set; }
             public int EndOffset { get; set; }
+            public string CollapsedText { get; set; }
         } 
     }
 }
