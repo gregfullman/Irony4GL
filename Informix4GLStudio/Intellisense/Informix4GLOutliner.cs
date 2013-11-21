@@ -74,7 +74,7 @@ namespace Informix4GLLanguage.Intellisense
             // If this isn't the most up-to-date version of the buffer, then ignore it for now (we'll eventually get another change event).
             if (e.After != buffer.CurrentSnapshot)
                 return;
-            this.ReParse();
+             this.ReParse();
         }
 
         void ReParse()
@@ -82,12 +82,12 @@ namespace Informix4GLLanguage.Intellisense
             ITextSnapshot newSnapshot = buffer.CurrentSnapshot;
             List<Region> newRegions = new List<Region>();
 
-            var grammar = new Informix4GLGrammar.Informix4GLGrammar();
-            Irony.Parsing.Parser parser = new Irony.Parsing.Parser(grammar);
+            //var grammar = new Informix4GLGrammar.Informix4GLGrammar();
+            var parser = Informix4GLFactory.Parser;
             var tree = parser.Parse(newSnapshot.GetText());
-            if(tree.Root != null)
+            if (tree.Root != null)
                 FindHiddenRegions(newSnapshot, tree.Root, ref newRegions);
-          
+
 
             //determine the changed span, and send a changed event with the new spans
             List<Span> oldSpans =

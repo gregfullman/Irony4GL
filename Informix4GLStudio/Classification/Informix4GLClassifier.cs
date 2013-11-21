@@ -49,7 +49,6 @@ namespace Informix4GLLanguage.Classification
     internal sealed class Informix4GLClassifier : ITagger<ClassificationTag>
     {
         ITextBuffer _buffer;
-        Informix4GLGrammar.Informix4GLGrammar _grammar;
         Irony.Parsing.Parser _parser;
 
         IDictionary<Irony.Parsing.TokenType, ClassificationTag> _4glTags;
@@ -65,8 +64,7 @@ namespace Informix4GLLanguage.Classification
         {
             _buffer = buffer;
 
-            _grammar = new Informix4GLGrammar.Informix4GLGrammar();
-            _parser = new Irony.Parsing.Parser(_grammar);
+            _parser = Informix4GLFactory.Parser;
             _parser.Context.Mode = Irony.Parsing.ParseMode.VsLineScan;
 
             _4glTags = new Dictionary<Irony.Parsing.TokenType, ClassificationTag>();

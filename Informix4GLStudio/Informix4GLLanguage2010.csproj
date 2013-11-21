@@ -124,11 +124,13 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BraceMatching\Informix4GLBraceMatchingTagger.cs" />
     <Compile Include="Classification\Informix4GLClassificationType.cs" />
     <Compile Include="Classification\Informix4GLClassifier.cs" />
     <Compile Include="Classification\Informix4GLCommentTagger.cs" />
     <Compile Include="Classification\Informix4GLTokenTagger.cs" />
     <Compile Include="Classification\Informix4GLSyntaxErrorTagger.cs" />
+    <Compile Include="Informix4GLFactory.cs" />
     <Compile Include="Intellisense\Informix4GLOutliner.cs" />
     <Compile Include="Navigation\Informix4GLNavigator.cs" />
     <Compile Include="Tags\Informix4GLCommentTag.cs" />

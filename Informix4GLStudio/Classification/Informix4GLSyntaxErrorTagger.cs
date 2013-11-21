@@ -32,8 +32,6 @@ namespace Informix4GLLanguage.Classification
         ITextSnapshot snapshot;
         List<Irony.Parsing.Token> errorTokens = new List<Irony.Parsing.Token>();
         Timer delayTimer;
-
-        static Irony.Parsing.Grammar grammar = new Informix4GLGrammar.Informix4GLGrammar();
        
         public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
@@ -81,7 +79,7 @@ namespace Informix4GLLanguage.Classification
             ITextSnapshot newSnapshot = this.buffer.CurrentSnapshot;
             string text = newSnapshot.GetText();
 
-            Irony.Parsing.Parser parser = new Irony.Parsing.Parser(grammar);
+            var parser = Informix4GLFactory.Parser;
             var newErrors = new List<Irony.Parsing.Token>();
             var parseTree = parser.Parse(text);
             foreach (var token in parseTree.Tokens)
