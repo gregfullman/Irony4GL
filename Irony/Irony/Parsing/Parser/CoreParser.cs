@@ -209,7 +209,8 @@ namespace Irony.Parsing {
       var listMember = Context.ParserStack.Top; //next list member is the last child - at the top of the stack
       if (SkipChildNode(listMember))
         return listNode; 
-      CheckCreateAstNode(listMember);  
+      CheckCreateAstNode(listMember);
+      listMember.Parent = listNode;
       listNode.ChildNodes.Add(listMember);
       return listNode; 
     }
@@ -232,6 +233,8 @@ namespace Irony.Parsing {
       var newNode = new ParseTreeNode(action.ReduceProduction, span);
       if(childCount > 0) { //if it is not empty production - might happen for MakeStarRule
         var listNode = Context.ParserStack[firstChildIndex]; //get the transient list with all members - it is the first child node
+        foreach (var node in listNode.ChildNodes)
+            node.Parent = newNode;
         newNode.ChildNodes.AddRange(listNode.ChildNodes);    //copy all list members
       }
       return newNode; 
@@ -266,6 +269,7 @@ namespace Irony.Parsing {
           newNode.Precedence = childNode.Precedence;
           newNode.Associativity = childNode.Associativity;
         }
+        childNode.Parent = newNode;
         newNode.ChildNodes.Add(childNode);
       }//for i
       return newNode;     

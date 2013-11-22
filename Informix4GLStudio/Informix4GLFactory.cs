@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Irony.Parsing;
 
 namespace Informix4GLLanguage
 {
@@ -9,6 +10,8 @@ namespace Informix4GLLanguage
     {
         private static Informix4GLGrammar.Informix4GLGrammar _grammar;
         private static Irony.Parsing.Parser _parser;
+        private static string _currentText;
+        private static ParseTree _currentParseTree;
 
         private Informix4GLFactory() { }
 
@@ -34,6 +37,16 @@ namespace Informix4GLLanguage
                 }
                 return _parser;
             }
+        }
+
+        public static ParseTree Parse(string text)
+        {
+            if (string.Compare(_currentText, text) != 0)
+            {
+                _currentText = text;
+                _currentParseTree = _parser.Parse(text);
+            }
+            return _currentParseTree;
         }
     }
 }

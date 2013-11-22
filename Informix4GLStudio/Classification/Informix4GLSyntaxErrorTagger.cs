@@ -99,9 +99,8 @@ namespace Informix4GLLanguage.Classification
             ITextSnapshot newSnapshot = this.buffer.CurrentSnapshot;
             string text = newSnapshot.GetText();
 
-            var parser = Informix4GLFactory.Parser;
             var newErrors = new List<Irony.Parsing.Token>();
-            var parseTree = parser.Parse(text);
+            var parseTree = Informix4GLFactory.Parse(text);
 
             // TODO: need a better way to do this...
             // First want to look at the parser's error messages, and associate a token with them

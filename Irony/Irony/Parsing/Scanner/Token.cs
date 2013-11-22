@@ -34,7 +34,8 @@ namespace Irony.Parsing {
 
   //Tokens are produced by scanner and fed to parser, optionally passing through Token filters in between. 
   public class Token  {
-    public Terminal Terminal {get; private set;} 
+    public Terminal Terminal {get; private set;}
+    public ParseTreeNode TreeNode { get; private set; }
     public KeyTerm KeyTerm;
     public Symbol Symbol { get; protected internal set; }
     public readonly SourceLocation Location; 
@@ -60,6 +61,12 @@ namespace Irony.Parsing {
     public void SetTerminal(Terminal terminal) {
       Terminal = terminal; 
       this.EditorInfo = Terminal.EditorInfo;  //set to term's EditorInfo by default
+    }
+
+    // provide a link back to the corresponding parse tree node
+    public void SetTreeNode(ParseTreeNode node)
+    {
+        TreeNode = node;
     }
 
     public bool IsSet(TokenFlags flag) {

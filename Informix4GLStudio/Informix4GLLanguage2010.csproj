@@ -66,6 +66,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="EnvDTE">
@@ -131,6 +132,8 @@
     <Compile Include="Classification\Informix4GLTokenTagger.cs" />
     <Compile Include="Classification\Informix4GLSyntaxErrorTagger.cs" />
     <Compile Include="Informix4GLFactory.cs" />
+    <Compile Include="Intellisense\CompletionCommandHandler.cs" />
+    <Compile Include="Intellisense\Informix4GLCompletion.cs" />
     <Compile Include="Intellisense\Informix4GLOutliner.cs" />
     <Compile Include="Navigation\Informix4GLNavigator.cs" />
     <Compile Include="Tags\Informix4GLCommentTag.cs" />

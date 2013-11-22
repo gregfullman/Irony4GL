@@ -84,8 +84,7 @@ namespace Informix4GLLanguage.Intellisense
             List<Region> newRegions = new List<Region>();
 
             //var grammar = new Informix4GLGrammar.Informix4GLGrammar();
-            var parser = Informix4GLFactory.Parser;
-            var tree = parser.Parse(newSnapshot.GetText());
+            var tree = Informix4GLFactory.Parse(newSnapshot.GetText());
             if (tree.Root != null)
                 FindHiddenRegions(newSnapshot, tree.Root, ref newRegions);
 

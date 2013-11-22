@@ -37,6 +37,7 @@ namespace Irony.Parsing {
     public SourceSpan Span;
     public Production ReduceProduction;
     public ParseTreeNodeList ChildNodes = new ParseTreeNodeList();
+    public ParseTreeNode Parent;
     public bool IsError;
     internal ParserState State;      //used by parser to store current state when node is pushed into the parser stack
 
@@ -46,6 +47,7 @@ namespace Irony.Parsing {
     
     public ParseTreeNode(Token token) {
       Token = token;
+      Token.SetTreeNode(this);
       Term = token.Terminal;
       Precedence = Term.Precedence;
       Associativity = token.Terminal.Associativity;
