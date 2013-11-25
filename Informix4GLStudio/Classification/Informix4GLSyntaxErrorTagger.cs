@@ -82,7 +82,13 @@ namespace Informix4GLLanguage.Classification
 
                         var line = currentSnapshot.GetLineFromLineNumber(error.Token.Location.Line);
                         var startPosition = line.Start.Position + error.Token.Location.Column;
+                        if (error.Token.ValueString == "EOF")
+                        {
+                            startPosition = line.Start.Position + error.Token.Text.Length;
+                        }
                         var errorMsg = error.Message != null ? error.Message.Message : error.Token.ValueString;
+                        if (currentSnapshot.Length <= startPosition + length)
+                            startPosition = currentSnapshot.Length - length - 1;
                         yield return new TagSpan<Informix4GLErrorTag>(
                             new SnapshotSpan(currentSnapshot, startPosition, length),
                             new Informix4GLErrorTag(errorMsg));

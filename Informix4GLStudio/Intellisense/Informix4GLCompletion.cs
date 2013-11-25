@@ -39,48 +39,56 @@ namespace Informix4GLLanguage.Intellisense
             m_textBuffer = textBuffer;
         }
 
-        private void GetLocalScopeVariables(ICompletionSession session)
+        private Token GetPrecedingToken(ICompletionSession session)
         {
+            Token retToken = null;
+
             // get the caret position as an absolute character position within the text
             int caretPosition = session.TextView.Caret.Position.BufferPosition.Position;
 
             // get the token closest to the caret position
-            Token current = null, backup = null, selected = null;
-            foreach (var token in m_parseTree.Tokens)
+            int lastNodePos = m_parseTree.Tokens.FindLastIndex(x => x.Location.Position < caretPosition);
+            if (lastNodePos > 0)
             {
-                current = token;
-                if (token.Location.Position < caretPosition)
-                    backup = current;
-                else
-                    break;
+                retToken = m_parseTree.Tokens[lastNodePos - 1];
             }
-            if(current != null && backup != null)
-            {
-                int backDelta = Math.Abs(caretPosition - backup.Location.Position);
-                int currDelta = Math.Abs(caretPosition - current.Location.Position);
-                if (backDelta < currDelta)
-                    selected = backup;
-                else
-                    selected = current;
-
-                // we now have the closest token to the caret. Let's determine the scope
-                //int i = 0;
-                // TODO: much more work to do here...
-            }
+            return retToken;
         }
 
         void ICompletionSource.AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
         {
+            List<string> strList = new List<string>() { " " };
             m_parseTree = Informix4GLFactory.Parse(m_textBuffer.CurrentSnapshot.GetText());
 
-            GetLocalScopeVariables(session);
+            // Need to make sure we don't do any completion in certain circumstances
+            // TODO: need to define more circumstances where this is true, and
+            // also handle stuff like defines, where it's not immediately obvious we're in a define
+            Token previousToken = GetPrecedingToken(session);
+             if (previousToken != null)
+            {
+                string containingFunction = null;
+                if (m_parseTree.Root != null)
+                {
+                    containingFunction = Informix4GLFactory.GetParentFunctionName(m_parseTree.Root, previousToken.TreeNode);
+                }
+                else if (Informix4GLFactory.LastGoodParseTree != null && Informix4GLFactory.LastGoodParseTree.Root != null)
+                {
+                    containingFunction = Informix4GLFactory.GetParentFunctionName(Informix4GLFactory.LastGoodParseTree.Root, previousToken.TreeNode);
+                }
 
-            List<string> strList = new List<string>();
-            // TODO: need to work on way to get completion text
-            strList.Add("addition");
-            strList.Add("adaptation");
-            strList.Add("subtraction");
-            strList.Add("summation");
+                if (containingFunction != null)
+                {
+                    if (Informix4GLFactory.FunctionVariables.ContainsKey(containingFunction))
+                    {
+                        strList.AddRange(Informix4GLFactory.FunctionVariables[containingFunction]);
+                    }
+                }
+                if (previousToken.Text != "function")
+                {
+                    // TODO: need to work on way to get completion text
+                    strList.AddRange(Informix4GLFactory.GlobalVariables);
+                }
+            }
             m_compList = new List<Completion>();
             foreach (string str in strList)
                 m_compList.Add(new Completion(str, str, str, null, null));

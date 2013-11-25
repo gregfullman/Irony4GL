@@ -161,14 +161,18 @@ namespace Informix4GLLanguage.Intellisense
                     endToken = child.LastChild.Token;       // '}' symbol
                     collapsedText = "function " + (GetFirstAvailableTokenValue(child.ChildNodes[1]));
                 }
-                //else if (child.Term.Name == "function body")
-                //{
-                //    startToken = child.ChildNodes[2].Token; // ')' symbol
-                //    endToken = child.ChildNodes[4].Token;   // 'end' keyword
-                    
-                //    //Offset the outline by 1 so we don't hide the ')' symbol.
-                //    startOffset = 1;
-                //}
+                else if (child.Term.Name == "globalDeclaration")
+                {
+                    startToken = child.FirstChild.Token;    // '{' symbol
+                    endToken = child.LastChild.LastChild.Token;       // '}' symbol
+                    collapsedText = "globals";
+                }
+                else if (child.Term.Name == "reportDefinition")
+                {
+                    startToken = child.FirstChild.Token;    // '{' symbol
+                    endToken = child.LastChild.Token;       // '}' symbol
+                    collapsedText = "report " + (GetFirstAvailableTokenValue(child.ChildNodes[1]));
+                }
 
                 if (startToken != null && endToken != null)
                 {

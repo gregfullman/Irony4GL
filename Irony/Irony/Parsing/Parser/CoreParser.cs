@@ -17,7 +17,21 @@ using System.Collections;
 using System.Diagnostics;
 
 
-namespace Irony.Parsing { 
+namespace Irony.Parsing {
+
+    public delegate void TokenReceivedHandler(object sender, TokenReceivedArgs args);
+
+    public class TokenReceivedArgs : EventArgs
+    {
+        private ParseTreeNode _node;
+
+        public TokenReceivedArgs(ParseTreeNode node)
+        {
+            _node = node;
+        }
+        public ParseTreeNode Node { get { return _node; } }
+    }
+
   // CoreParser class implements NLALR parser automaton. Its behavior is controlled by the state transition graph
   // with root in Data.InitialState. Each state contains a dictionary of parser actions indexed by input 
   // element (terminal or non-terminal). 
@@ -37,6 +51,18 @@ namespace Irony.Parsing {
     Grammar _grammar;
     private ParsingContext Context {
       get { return Parser.Context; }
+    }
+    #endregion
+
+    #region Events
+    public event TokenReceivedHandler TokenReceived;
+
+    protected virtual void OnTokenReceived(ParseTreeNode node)
+    {
+        if (TokenReceived != null)
+        {
+            TokenReceived(this, new TokenReceivedArgs(node));
+        }
     }
     #endregion
 
@@ -82,13 +108,17 @@ namespace Irony.Parsing {
     private void ExecuteAction() {
       //Read input only if DefaultReduceAction is null - in this case the state does not contain ExpectedSet,
       // so parser cannot assist scanner when it needs to select terminal and therefore can fail
-      if (Context.CurrentParserInput == null && Context.CurrentParserState.DefaultAction == null)
-        ReadInput();
+        if (Context.CurrentParserInput == null && Context.CurrentParserState.DefaultAction == null)
+        {
+            ReadInput();
+        }
+
       //Check scanner error
       if (Context.CurrentParserInput != null && Context.CurrentParserInput.IsError) {
         ProcessParserError();
         return;
       }
+
       //Try getting action
       var action = FindActionForStateAndInput();
       if (action == null) {
@@ -99,6 +129,9 @@ namespace Irony.Parsing {
       }    
       //We have action. First, write trace
       Context.AddTrace("{0}", action);
+
+      
+
       //Execute it
       switch (action.ActionType) {
         case ParserActionType.Shift: ExecuteShift(action); break;

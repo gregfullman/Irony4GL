@@ -57,6 +57,8 @@ namespace Informix4GLGrammar
 
         public Informix4GLGrammar() : base(false)
         {
+            this.LanguageFlags = Irony.Parsing.LanguageFlags.CreateAst;
+
             // Use C#'s string literal for right now
             StringLiteral StringLiteral = Informix4GLTerminalFactory.CreateString("StringLiteral");
 
@@ -608,7 +610,7 @@ namespace Informix4GLGrammar
             var HELP = Keyword("help");
             var REVERSE = Keyword("reverse");
             var ORDER = Keyword("order");
-            var UNBUFFERED = Keyword("buffered");
+            var UNBUFFERED = Keyword("unbuffered");
             var CANCEL = Keyword("cancel");
             var ATTRIBUTE = Keyword("attribute");
             var ATTRIBUTES = Keyword("attributes");
@@ -913,13 +915,13 @@ namespace Informix4GLGrammar
 
             classChain.Rule = MakePlusRule(classChain, dot, functionIdentifier);
 
-            functionIdentifier.Rule = DAY | YEAR | MONTH | COLUMN |
+            functionIdentifier.Rule = DAY | YEAR | MONTH | COLUMN | CLEAR | CREATE |
                                       SUM | AVG | MIN | MAX | EXTEND | DATE | INFIELD |
-                                      PREPARE | constantIdentifier;
+                                      PREPARE | READ | CLOSE | constantIdentifier;
 
             constantIdentifier.Rule = ACCEPT | ASCII | COUNT | CURRENT | FALSE | FIRST | FOUND | GROUP |
                                       HIDE | INDEX | INT_FLAG | INTERRUPT | LAST | LENGTH | LINENO | MDY | NO |
-                                      NOTFOUND | NULL | PAGENO | REAL | SIZE | SQL | STATUS | TEMP | TIME |
+                                      NOTFOUND | NULL | PAGENO | REAL | SIZE | SPACE | SQL | STATUS | TEMP | TIME |
                                       TODAY | TRUE | USER | WAIT | WEEKDAY | WORK | Identifier;
             
             literal.Rule = Number | StringLiteral | TRUE| FALSE | NULL;
@@ -934,9 +936,9 @@ namespace Informix4GLGrammar
             binaryOperator.Rule = lt | doubleEqual | nequal | gt | le | ge | plus | minus | star | div | MOD
                   | singleEqual | plusEqual | AND | OR | IS | (IS + NOT);
             unaryOperator.Rule = plus | minus | NOT;
-            memberAccess.Rule = classChain + memberAccessSegmentOpt;
+            memberAccess.Rule = functionIdentifier + memberAccessSegmentOpt;
             memberAccessSegmentOpt.Rule = MakeStarRule(memberAccessSegmentOpt, null, memberAccessSegment);
-            memberAccessSegment.Rule = (dot + (Identifier | star)) |
+            memberAccessSegment.Rule = (dot + (functionIdentifier | star)) |
                                        arrayIndexer |
                                        argumentListPar;
             argumentListPar.Rule = Lpar + argumentListOpt + Rpar;
@@ -1081,7 +1083,7 @@ namespace Informix4GLGrammar
                                ((BEFORE | AFTER) + FIELD + fieldList) |
                                (ON + KEY + Lpar + keyList + Rpar) |
                                (ON + CHANGE + fieldList) |
-                               (ON + (IDLE | ACTION) + Identifier);
+                               (ON + ((IDLE + Identifier) | (ACTION + (CANCEL | ACCEPT | CLOSE | HELP | Identifier))));
             
             inputOrConstructInsideStatement.Rule = (NEXT + FIELD + (fieldName | NEXT | PREVIOUS)) |
                                         ((CONTINUE | EXIT) + (INPUT | CONSTRUCT));
@@ -1090,7 +1092,7 @@ namespace Informix4GLGrammar
             zeroOrMoreCodeBlocks.Rule = MakeStarRule(zeroOrMoreCodeBlocks, null, codeBlock);
             inputStatement.Rule = INPUT +
                                   ((BY + NAME + oneOrMoreExpressions +
-                                    (WITHOUT + DEFAULTS).Q()) |
+                                    (WITHOUT + DEFAULTS + attributeList.Q()).Q()) |
                                    (oneOrMoreExpressions + (WITHOUT + DEFAULTS).Q() + FROM + fieldList)) +
                                   attributeList.Q() +
                                   (HELP + numericConstant).Q() +
@@ -1106,7 +1108,7 @@ namespace Informix4GLGrammar
                               (COMMAND +
                                 ((KEY + Lpar + keyList + Rpar).Q() +
                                  expression + expression.Q() + (HELP + numericConstant).Q())) |
-                              (ON + (IDLE | ACTION) + Identifier);
+                              (ON + ((IDLE + Identifier) | (ACTION + (CLOSE | HELP | OUTPUT | PRINT | UPDATE | Identifier))));
             additionalExpression.Rule = comma + expression;
             zeroOrMoreAdditionalExpressions.Rule = MakeStarRule(zeroOrMoreAdditionalExpressions, null, additionalExpression);
             menuInsideStatement.Rule = ((NEXT | SHOW | HIDE) + OPTION + (expression | ALL) + zeroOrMoreAdditionalExpressions) |

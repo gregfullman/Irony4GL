@@ -17,8 +17,16 @@ using System.Text;
 
 namespace Irony.Parsing {
   //Parser class represents combination of scanner and LALR parser (CoreParser)
-  public class Parser {
-    public readonly LanguageData Language; 
+  public class Parser
+  {
+
+      #region Events
+
+      public event TokenReceivedHandler TokenReceived;
+
+      #endregion
+
+      public readonly LanguageData Language; 
     public readonly CoreParser CoreParser;
     public readonly Scanner Scanner;
     public ParsingContext Context { get; internal set; }
@@ -41,6 +49,15 @@ namespace Irony.Parsing {
           throw new Exception(string.Format(Resources.ErrRootNotRegistered, root.Name));
         InitialState = Language.ParserData.InitialStates[Root]; 
       }
+      CoreParser.TokenReceived += new TokenReceivedHandler(CoreParser_TokenReceived);
+    }
+
+    void CoreParser_TokenReceived(object sender, TokenReceivedArgs args)
+    {
+        if (TokenReceived != null)
+        {
+            TokenReceived(this, args);
+        }
     }
 
     internal void Reset() {

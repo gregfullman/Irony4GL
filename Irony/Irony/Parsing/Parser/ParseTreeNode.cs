@@ -96,10 +96,18 @@ namespace Irony.Parsing {
       return null; 
     }
     public ParseTreeNode FirstChild {
-      get { return ChildNodes[0]; }
+      get 
+      {
+          if (ChildNodes.Count == 0) return null;
+          return ChildNodes[0]; 
+      }
     }
     public ParseTreeNode LastChild {
-      get { return ChildNodes[ChildNodes.Count -1]; }
+      get 
+      {
+          if (ChildNodes.Count == 0) return null;
+          return ChildNodes[ChildNodes.Count -1]; 
+      }
     }
 
   }//class
