@@ -135,6 +135,7 @@
     <Compile Include="Intellisense\CompletionCommandHandler.cs" />
     <Compile Include="Intellisense\Informix4GLCompletion.cs" />
     <Compile Include="Intellisense\Informix4GLOutliner.cs" />
+    <Compile Include="Navigation\Informix4GLHighlightTagger.cs" />
     <Compile Include="Navigation\Informix4GLNavigator.cs" />
     <Compile Include="Tags\Informix4GLCommentTag.cs" />
     <Compile Include="Tags\Informix4GLTokenTag.cs" />
